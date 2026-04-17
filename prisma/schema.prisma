@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = "postgresql://postgres.yqzgmbjsnxnxoywphivc:AgLkV5RCJP5QRVxx@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+}
+
+model User {
+  id               String        @id @default(uuid())
+  email            String        @unique
+  stripeCustomerId String?
+  planTier         String        @default("FREE")
+  monthlyUsage     Int           @default(0)
+  billingCycleEnd  DateTime?
+  brandPresets     BrandPreset[]
+  projects         Project[]
+}
+
+model BrandPreset {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  name           String
+  agentName      String?
+  brokerageName  String?
+  logoKey        String?
+  headshotKey    String?
+  primaryColor   String    @default("#000000")
+  secondaryColor String?
+  projects       Project[]
+}
+
+model Project {
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  brandPresetId String?
+  brand         BrandPreset? @relation(fields: [brandPresetId], references: [id])
+  address       String?
+  price         String?
+  beds          String?
+  baths         String?
+  photos        Json         @default("[]")
+  audioTrackId  String       @default("track_1")
+  status        String       @default("DRAFT")
+  video16x9Url  String?
+  video9x16Url  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
