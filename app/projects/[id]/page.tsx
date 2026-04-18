@@ -16,8 +16,8 @@ export default async function ProjectPage({
 
   if (!project) {
     return (
-      <main>
-        <p>Project not found.</p>
+      <main style={{ padding: 24 }}>
+        <p style={{ color: '#888888' }}>Project not found.</p>
       </main>
     )
   }

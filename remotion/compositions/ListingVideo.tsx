@@ -5,7 +5,6 @@ import {
   interpolate,
   Sequence,
   useCurrentFrame,
-  useVideoConfig,
 } from 'remotion'
 import { PhotoItem } from '@/lib/types'
 
@@ -153,8 +152,10 @@ function PhotoSlide({ photo, index, totalPhotos, address }: {
           transformOrigin: `${focusX}% ${focusY}%`,
           willChange: 'transform',
         }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imgSrc}
+            alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${focusX}% ${focusY}%` }}
           />
         </div>

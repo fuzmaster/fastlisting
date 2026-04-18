@@ -31,7 +31,6 @@ export async function POST(request: Request) {
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object
     const customerId = subscription.customer as string
-    const customers = await stripe.customers.list({ limit: 1, expand: [] })
     const customer = await stripe.customers.retrieve(customerId)
     if ('email' in customer && customer.email) {
       const user = await getUserByEmail(customer.email)

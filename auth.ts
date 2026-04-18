@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true
     },
-    async session({ session, token }) {
+    async session({ session }) {
       if (session.user?.email) {
         const { getUserByEmail } = await import('@/lib/db/users')
         const dbUser = await getUserByEmail(session.user.email)

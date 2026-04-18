@@ -1,6 +1,5 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { getProjectsByUserId } from '@/lib/db/projects'
 import { ProjectCard } from './ProjectCard'
 

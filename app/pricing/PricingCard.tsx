@@ -2,91 +2,86 @@
 
 type PricingCardProps = {
   title: string
-  rendersText: string
-  priceText: string
+  description: string
+  price: string
+  features: string[]
   priceId: string
   userId: string
   label: string
-}
-
-type FullPricingCardProps = PricingCardProps & {
-  period?: string
   featured?: boolean
 }
 
-export function PricingCard({ title, rendersText, priceText, priceId, userId, label, period = '', featured = false }: FullPricingCardProps) {
+export function PricingCard({ title, description, price, features, priceId, userId, label, featured }: PricingCardProps) {
   return (
     <div style={{
       padding: 32,
-      backgroundColor: featured ? '#141414' : '#0A0A0A',
-      border: `2px solid ${featured ? '#E8D5B7' : '#262626'}`,
-      borderRadius: 8,
+      backgroundColor: '#141414',
+      border: `1px solid ${featured ? '#E8D5B7' : '#262626'}`,
+      borderRadius: 10,
       display: 'flex',
       flexDirection: 'column',
+      gap: 20,
       position: 'relative',
-      transition: 'transform 0.15s, border-color 0.15s',
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = 'translateY(-4px)'
-      if (!featured) e.currentTarget.style.borderColor = '#E8D5B7'
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = 'translateY(0)'
-      if (!featured) e.currentTarget.style.borderColor = '#262626'
-    }}
-    >
+    }}>
       {featured && (
         <div style={{
           position: 'absolute',
           top: -12,
-          left: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
           backgroundColor: '#E8D5B7',
           color: '#0A0A0A',
-          padding: '4px 12px',
-          borderRadius: 4,
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: '0.05em',
+          fontSize: 11,
+          fontWeight: 700,
+          padding: '3px 12px',
+          borderRadius: 20,
+          letterSpacing: '0.06em',
           textTransform: 'uppercase',
+          whiteSpace: 'nowrap',
         }}>
-          Recommended
+          Most Popular
         </div>
       )}
-      <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, marginTop: featured ? 12 : 0 }}>{title}</h2>
-      <p style={{ fontSize: 14, color: '#888888', marginBottom: 24, marginTop: 0 }}>{rendersText}</p>
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 0, marginTop: 0 }}>
-          {priceText}
-          {period && <span style={{ fontSize: 14, fontWeight: 400, color: '#888888' }}>{period}</span>}
-        </p>
+
+      <div>
+        <p style={{ fontSize: 13, color: '#888888', marginBottom: 4 }}>{title}</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+          <span style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.03em' }}>{price}</span>
+          <span style={{ fontSize: 14, color: '#888888' }}>/mo</span>
+        </div>
+        <p style={{ fontSize: 13, color: '#888888', lineHeight: 1.5 }}>{description}</p>
       </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {features.map((f) => (
+          <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ color: '#86EFAC', flexShrink: 0, marginTop: 1 }}>✓</span>
+            <span style={{ fontSize: 13, color: '#F5F5F5' }}>{f}</span>
+          </div>
+        ))}
+      </div>
+
       <button
-        type="button"
-        style={{
-          width: '100%',
-          padding: '12px 16px',
-          marginTop: 'auto',
-          fontSize: 14,
-          fontWeight: 600,
-          backgroundColor: featured ? '#E8D5B7' : '#262626',
-          color: featured ? '#0A0A0A' : '#F5F5F5',
-          border: 'none',
-          borderRadius: 6,
-          cursor: 'pointer',
-          transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
         onClick={async () => {
-          const response = await fetch('/api/stripe/checkout', {
+          if (!userId) { window.location.href = '/login'; return }
+          const res = await fetch('/api/stripe/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, priceId }),
           })
-          const data = await response.json()
-          if (data?.url) {
-            window.location.href = data.url
-          }
+          const data = await res.json()
+          if (data?.url) window.location.href = data.url
+        }}
+        style={{
+          padding: '11px 20px',
+          backgroundColor: featured ? '#E8D5B7' : '#1A1A1A',
+          color: featured ? '#0A0A0A' : '#F5F5F5',
+          border: featured ? 'none' : '1px solid #262626',
+          borderRadius: 6,
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: 'pointer',
+          marginTop: 8,
         }}
       >
         {label}
