@@ -1,6 +1,8 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { getProjectById } from '@/lib/db/projects'
+import { getUserById } from '@/lib/db/users'
+import { PLAN_LIMITS } from '@/lib/constants'
 import { ProjectEditor } from './ProjectEditor'
 
 export default async function ProjectPage({
@@ -12,7 +14,10 @@ export default async function ProjectPage({
   if (!session?.user?.id) redirect('/login')
 
   const { id } = await params
-  const project = await getProjectById(id)
+  const [project, user] = await Promise.all([
+    getProjectById(id),
+    getUserById(session.user.id),
+  ])
 
   if (!project) {
     return (
@@ -22,9 +27,19 @@ export default async function ProjectPage({
     )
   }
 
+  const planTier = (user?.planTier ?? 'FREE') as keyof typeof PLAN_LIMITS
+  const limit = PLAN_LIMITS[planTier] ?? 0
+  const used = user?.monthlyUsage ?? 0
+  const remaining = Math.max(0, limit - used)
+
   return (
     <main>
-      <ProjectEditor project={project} userId={session.user.id} />
+      <ProjectEditor
+        project={project}
+        userId={session.user.id}
+        rendersRemaining={remaining}
+        planTier={planTier}
+      />
     </main>
   )
 }

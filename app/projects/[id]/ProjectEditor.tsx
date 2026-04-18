@@ -5,6 +5,7 @@ import { Project } from '@prisma/client'
 import { Player } from '@remotion/player'
 import { PhotoItem } from '@/lib/types'
 import { ListingVideo } from '@/remotion/compositions/ListingVideo'
+import { AudioPicker } from './AudioPicker'
 
 const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET ?? ''
 const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION ?? 'us-east-1'
@@ -17,11 +18,16 @@ function toSlug(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/[\s,]+/g, '-').replace(/-+/g, '-').trim()
 }
 
-interface ProjectEditorProps { project: Project; userId: string }
+interface ProjectEditorProps {
+  project: Project
+  userId: string
+  rendersRemaining: number
+  planTier: string
+}
 interface RenderResult { renderId16x9: string; renderId9x16: string; bucketName: string }
 interface RenderStatus { done: boolean; outputFile: string | null; overallProgress: number; errors: unknown[] }
 
-export function ProjectEditor({ project, userId }: ProjectEditorProps) {
+export function ProjectEditor({ project, userId, rendersRemaining, planTier }: ProjectEditorProps) {
   const [photos, setPhotos] = useState<PhotoItem[]>((project.photos as unknown as PhotoItem[]) ?? [])
   const [address, setAddress] = useState(project.address ?? '')
   const [price, setPrice] = useState(project.price ?? '')
@@ -29,16 +35,19 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
   const [baths, setBaths] = useState(project.baths ?? '')
   const [presets, setPresets] = useState<{ id: string; name: string }[]>([])
   const [brandPresetId, setBrandPresetId] = useState(project.brandPresetId ?? '')
+  const [audioTrackId, setAudioTrackId] = useState(project.audioTrackId ?? 'track_1')
   const [newPresetName, setNewPresetName] = useState('')
   const [generating, setGenerating] = useState(false)
   const [uploadStatus, setUploadStatus] = useState('')
   const [generateMessage, setGenerateMessage] = useState('')
   const [renderProgress, setRenderProgress] = useState(0)
+  const [renderFailed, setRenderFailed] = useState(false)
   const [focusPickerPhotoId, setFocusPickerPhotoId] = useState<string | null>(null)
   const [downloadUrls, setDownloadUrls] = useState<{ url16x9: string | null; url9x16: string | null }>({
     url16x9: project.video16x9Url ?? null,
     url9x16: project.video9x16Url ?? null,
   })
+  const [localRemaining, setLocalRemaining] = useState(rendersRemaining)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const photosRef = useRef(photos)
   useEffect(() => { photosRef.current = photos }, [photos])
@@ -51,11 +60,31 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
   }
 
+  async function resetRender() {
+    setRenderFailed(false)
+    setGenerateMessage('')
+    setRenderProgress(0)
+    await fetch('/api/render/reset', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: project.id }),
+    })
+  }
+
   async function pollRenderStatus(r: RenderResult) {
     let attempts = 0
     pollRef.current = setInterval(async () => {
       attempts++
-      if (attempts > 72) { stopPolling(); setGenerateMessage('Render timed out.'); setGenerating(false); return }
+      if (attempts > 72) {
+        stopPolling()
+        setGenerateMessage('Render timed out.')
+        setGenerating(false)
+        setRenderFailed(true)
+        await fetch('/api/render/reset', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId: project.id }),
+        })
+        return
+      }
       try {
         const [a, b] = await Promise.all([
           fetch(`/api/render/status/${r.renderId16x9}?bucketName=${r.bucketName}`),
@@ -63,9 +92,30 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
         ])
         const s16: RenderStatus = await a.json()
         const s9: RenderStatus = await b.json()
+
+        // Check for errors
+        const hasErrors = (s16.errors?.length ?? 0) > 0 || (s9.errors?.length ?? 0) > 0
+        if (hasErrors) {
+          stopPolling()
+          setGenerating(false)
+          setRenderFailed(true)
+          setGenerateMessage('Render failed. You can retry without using another render credit.')
+          await fetch('/api/render/reset', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId: project.id }),
+          })
+          return
+        }
+
         setRenderProgress(Math.round(((s16.overallProgress ?? 0) + (s9.overallProgress ?? 0)) / 2 * 100))
+
         if (s16.done && s9.done) {
-          stopPolling(); setGenerating(false); setRenderProgress(100); setGenerateMessage('Renders complete!')
+          stopPolling()
+          setGenerating(false)
+          setRenderProgress(100)
+          setGenerateMessage('Renders complete!')
+          setRenderFailed(false)
+          setLocalRemaining(prev => Math.max(0, prev - 1))
           const url16x9 = s16.outputFile ?? null
           const url9x16 = s9.outputFile ?? null
           setDownloadUrls({ url16x9, url9x16 })
@@ -145,9 +195,7 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
     const x = Math.round(Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)))
     const y = Math.round(Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100)))
     const updated = photos.map(p => p.id === photoId ? { ...p, focusX: x, focusY: y } : p)
-    setPhotos(updated)
-    setFocusPickerPhotoId(null)
-    savePhotos(updated)
+    setPhotos(updated); setFocusPickerPhotoId(null); savePhotos(updated)
   }
 
   async function createPreset() {
@@ -157,13 +205,12 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
       body: JSON.stringify({ userId, name: newPresetName.trim() }),
     })
     const preset = await res.json()
-    setPresets(prev => [...prev, preset])
-    setNewPresetName('')
+    setPresets(prev => [...prev, preset]); setNewPresetName('')
   }
 
   async function handleGenerate() {
     setGenerating(true); setGenerateMessage('Starting renders...'); setRenderProgress(0)
-    setDownloadUrls({ url16x9: null, url9x16: null }); stopPolling()
+    setRenderFailed(false); setDownloadUrls({ url16x9: null, url9x16: null }); stopPolling()
     const res = await fetch('/api/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectId: project.id }),
@@ -175,6 +222,7 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
   }
 
   const slug = toSlug(address || 'listing')
+  const canGenerate = photos.length > 0 && !generating && localRemaining > 0
   const ss: React.CSSProperties = { backgroundColor: '#141414', border: '1px solid #262626', borderRadius: 8, padding: 24, marginBottom: 16 }
   const ls: React.CSSProperties = { display: 'block', fontSize: 12, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }
   const is: React.CSSProperties = { width: '100%', padding: '8px 12px', backgroundColor: '#1A1A1A', border: '1px solid #262626', borderRadius: 6, color: '#F5F5F5', fontSize: 14, outline: 'none' }
@@ -188,6 +236,7 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, alignItems: 'start' }}>
         <div>
+
           {/* PHOTOS */}
           <div style={ss}>
             <h2 style={{ marginBottom: 16, marginTop: 0 }}>Photos</h2>
@@ -203,47 +252,20 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
                 {photos.map((photo, index) => (
                   <div key={photo.id} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden' }}>
                     <img src={getS3Url(photo.proxyKey)} alt={`Photo ${index + 1}`} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
-
-                    {/* Focus picker overlay */}
                     {focusPickerPhotoId === photo.id && (
-                      <div
-                        onClick={(e) => handleFocalPointClick(e, photo.id)}
-                        style={{ position: 'absolute', inset: 0, cursor: 'crosshair', backgroundColor: 'rgba(0,0,0,0.3)' }}
-                      >
-                        <div style={{
-                          position: 'absolute',
-                          left: `${photo.focusX}%`,
-                          top: `${photo.focusY}%`,
-                          transform: 'translate(-50%, -50%)',
-                          width: 12, height: 12,
-                          borderRadius: '50%',
-                          backgroundColor: '#E8D5B7',
-                          border: '2px solid white',
-                          pointerEvents: 'none',
-                        }} />
+                      <div onClick={(e) => handleFocalPointClick(e, photo.id)} style={{ position: 'absolute', inset: 0, cursor: 'crosshair', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                        <div style={{ position: 'absolute', left: `${photo.focusX}%`, top: `${photo.focusY}%`, transform: 'translate(-50%,-50%)', width: 12, height: 12, borderRadius: '50%', backgroundColor: '#E8D5B7', border: '2px solid white', pointerEvents: 'none' }} />
                       </div>
                     )}
-
-                    {/* Set focus button */}
-                    <button
-                      type="button"
-                      onClick={() => setFocusPickerPhotoId(focusPickerPhotoId === photo.id ? null : photo.id)}
-                      style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.7)', color: '#E8D5B7', fontSize: 10, padding: '2px 6px', borderRadius: 3, border: 'none', cursor: 'pointer' }}
-                    >
+                    <button type="button" onClick={() => setFocusPickerPhotoId(focusPickerPhotoId === photo.id ? null : photo.id)} style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.7)', color: '#E8D5B7', fontSize: 10, padding: '2px 6px', borderRadius: 3, border: 'none', cursor: 'pointer' }}>
                       {focusPickerPhotoId === photo.id ? 'Cancel' : '⊕ Focus'}
                     </button>
-
-                    {/* Index badge */}
                     <div style={{ position: 'absolute', top: 4, left: 4, backgroundColor: 'rgba(0,0,0,0.6)', color: '#888888', fontSize: 11, padding: '2px 5px', borderRadius: 3 }}>{index + 1}</div>
-
-                    {/* Reorder + delete */}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', gap: 2, padding: 4, backgroundColor: 'rgba(0,0,0,0.6)' }}>
                       <button type="button" onClick={() => movePhoto(index, 'up')} style={{ flex: 1, padding: '3px 0', fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', border: 'none', color: '#F5F5F5', borderRadius: 3 }}>↑</button>
                       <button type="button" onClick={() => movePhoto(index, 'down')} style={{ flex: 1, padding: '3px 0', fontSize: 11, backgroundColor: 'rgba(255,255,255,0.1)', border: 'none', color: '#F5F5F5', borderRadius: 3 }}>↓</button>
                       <button type="button" onClick={() => removePhoto(index)} style={{ flex: 1, padding: '3px 0', fontSize: 11, backgroundColor: 'rgba(239,68,68,0.3)', border: 'none', color: '#FCA5A5', borderRadius: 3 }}>✕</button>
                     </div>
-
-                    {/* Focal point display */}
                     <div style={{ padding: '2px 4px', backgroundColor: '#0A0A0A', textAlign: 'center' }}>
                       <span style={{ fontSize: 10, color: '#555' }}>Focus: {photo.focusX}% {photo.focusY}%</span>
                     </div>
@@ -282,6 +304,14 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
               <button type="button" onClick={createPreset} style={{ padding: '8px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 13, whiteSpace: 'nowrap' }}>Create</button>
             </div>
           </div>
+
+          {/* AUDIO */}
+          <div style={ss}>
+            <h2 style={{ marginBottom: 4, marginTop: 0 }}>Audio Track</h2>
+            <p style={{ fontSize: 13, color: '#888888', marginBottom: 16 }}>Select the background music for this listing video.</p>
+            <AudioPicker value={audioTrackId} onChange={(id) => { setAudioTrackId(id); saveField('audioTrackId', id) }} />
+          </div>
+
         </div>
 
         {/* RIGHT COLUMN */}
@@ -305,38 +335,77 @@ export function ProjectEditor({ project, userId }: ProjectEditorProps) {
           </div>
 
           <div style={ss}>
+            {/* Usage counter */}
+            <div style={{ marginBottom: 16, padding: '10px 14px', backgroundColor: '#1A1A1A', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#888888' }}>Renders remaining</span>
+              <span style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: localRemaining === 0 ? '#FCA5A5' : localRemaining <= 3 ? '#FCD34D' : '#86EFAC',
+              }}>
+                {localRemaining} / {planTier === 'PRO' ? 50 : planTier === 'STARTER' ? 15 : 0}
+              </span>
+            </div>
+
+            {localRemaining === 0 && !generating && (
+              <div style={{ marginBottom: 12, padding: '10px 14px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
+                <p style={{ fontSize: 13, color: '#FCA5A5', margin: 0 }}>
+                  Monthly limit reached. <a href="/pricing" style={{ color: '#E8D5B7', textDecoration: 'underline' }}>Upgrade your plan</a>
+                </p>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={photos.length === 0 || generating}
-              style={{ width: '100%', padding: '12px 24px', backgroundColor: photos.length === 0 || generating ? '#1A1A1A' : '#E8D5B7', color: photos.length === 0 || generating ? '#888888' : '#0A0A0A', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600 }}
+              disabled={!canGenerate}
+              style={{ width: '100%', padding: '12px 24px', backgroundColor: canGenerate ? '#E8D5B7' : '#1A1A1A', color: canGenerate ? '#0A0A0A' : '#888888', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600 }}
             >
               {generating ? `Rendering... ${renderProgress}%` : 'Generate Video'}
             </button>
-            {photos.length === 0 && <p style={{ fontSize: 12, color: '#888888', marginTop: 8, textAlign: 'center' }}>Add photos to enable rendering</p>}
+
+            {photos.length === 0 && !generating && (
+              <p style={{ fontSize: 12, color: '#888888', marginTop: 8, textAlign: 'center' }}>Add photos to enable rendering</p>
+            )}
+
             {generating && renderProgress > 0 && (
               <div style={{ marginTop: 12, backgroundColor: '#1A1A1A', borderRadius: 4, height: 4, overflow: 'hidden' }}>
                 <div style={{ height: '100%', backgroundColor: '#E8D5B7', width: `${renderProgress}%`, transition: 'width 0.5s ease' }} />
               </div>
             )}
-            {generateMessage && (
-              <p style={{ fontSize: 13, color: generateMessage.includes('complete') ? '#86EFAC' : generateMessage.includes('failed') || generateMessage.includes('timed') ? '#FCA5A5' : '#888888', marginTop: 8, textAlign: 'center' }}>
+
+            {generateMessage && !renderFailed && (
+              <p style={{ fontSize: 13, color: generateMessage.includes('complete') ? '#86EFAC' : '#888888', marginTop: 8, textAlign: 'center' }}>
                 {generateMessage}
               </p>
             )}
+
+            {renderFailed && (
+              <div style={{ marginTop: 12, padding: '12px 14px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
+                <p style={{ fontSize: 13, color: '#FCA5A5', margin: '0 0 10px' }}>
+                  {generateMessage || 'Render failed.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => { await resetRender(); handleGenerate() }}
+                  style={{ width: '100%', padding: '8px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                >
+                  ↺ Retry Render
+                </button>
+              </div>
+            )}
+
             {(downloadUrls.url16x9 || downloadUrls.url9x16) && (
               <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #262626' }}>
                 <p style={{ fontSize: 12, color: '#888888', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Downloads</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {downloadUrls.url16x9 && (
-                    <a href={downloadUrls.url16x9} download={`${slug}_16x9.mp4`} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'block', padding: '10px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', borderRadius: 6, fontSize: 13, color: '#E8D5B7', textAlign: 'center', textDecoration: 'none', fontWeight: 500 }}>
+                    <a href={downloadUrls.url16x9} download={`${slug}_16x9.mp4`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '10px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', borderRadius: 6, fontSize: 13, color: '#E8D5B7', textAlign: 'center', textDecoration: 'none', fontWeight: 500 }}>
                       ↓ Download 16:9 (Landscape)
                     </a>
                   )}
                   {downloadUrls.url9x16 && (
-                    <a href={downloadUrls.url9x16} download={`${slug}_9x16.mp4`} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'block', padding: '10px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', borderRadius: 6, fontSize: 13, color: '#E8D5B7', textAlign: 'center', textDecoration: 'none', fontWeight: 500 }}>
+                    <a href={downloadUrls.url9x16} download={`${slug}_9x16.mp4`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '10px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', borderRadius: 6, fontSize: 13, color: '#E8D5B7', textAlign: 'center', textDecoration: 'none', fontWeight: 500 }}>
                       ↓ Download 9:16 (Vertical)
                     </a>
                   )}
