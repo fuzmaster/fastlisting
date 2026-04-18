@@ -1,0 +1,51 @@
+.card {
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  margin-bottom: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--primary), #000 10%);
+  transform: translateY(-1px);
+}
+
+.title {
+  margin: 0;
+  font-weight: 650;
+}
+
+.sub {
+  margin: 0.2rem 0 0;
+  color: var(--text-subtle);
+}
+
+.status {
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.26rem 0.6rem;
+  border: 1px solid var(--border);
+}
+
+.completed {
+  color: #0f5132;
+  background: #e8f6ee;
+  border-color: #b3dfc7;
+}
+
+.rendering {
+  color: #7a5518;
+  background: #fff6e6;
+  border-color: #f1d2a0;
+}
+
+.draft {
+  color: var(--text-subtle);
+}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 interface Preset {
   id: string
@@ -13,7 +14,6 @@ interface Preset {
 
 interface Props {
   presets: Preset[]
-  userId: string
 }
 
 const emptyForm = {
@@ -44,10 +44,11 @@ const ls: React.CSSProperties = {
   marginBottom: 6,
 }
 
-export function BrandPresetsEditor({ presets: initialPresets, userId }: Props) {
+export function BrandPresetsEditor({ presets: initialPresets }: Props) {
   const [presets, setPresets] = useState<Preset[]>(initialPresets)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -97,7 +98,6 @@ export function BrandPresetsEditor({ presets: initialPresets, userId }: Props) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId,
             name: form.name.trim(),
             agentName: form.agentName.trim() || null,
             brokerageName: form.brokerageName.trim() || null,
@@ -118,10 +118,10 @@ export function BrandPresetsEditor({ presets: initialPresets, userId }: Props) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this preset?')) return
     await fetch(`/api/brand-presets/${id}`, { method: 'DELETE' })
     setPresets(prev => prev.filter(p => p.id !== id))
     if (editingId === id) cancelEdit()
+    setDeleteId(null)
   }
 
   const cardStyle: React.CSSProperties = {
@@ -165,7 +165,7 @@ export function BrandPresetsEditor({ presets: initialPresets, userId }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => handleDelete(preset.id)}
+              onClick={() => setDeleteId(preset.id)}
               style={{ padding: '6px 14px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#FCA5A5', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
             >
               Delete
@@ -257,6 +257,19 @@ export function BrandPresetsEditor({ presets: initialPresets, userId }: Props) {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        open={Boolean(deleteId)}
+        title="Delete preset?"
+        body="This will permanently remove the preset from all future projects."
+        confirmText="Delete preset"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId) {
+            handleDelete(deleteId)
+          }
+        }}
+      />
     </div>
   )
 }

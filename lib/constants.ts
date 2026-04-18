@@ -17,7 +17,7 @@ export const AUDIO_TRACKS = [
 ] as const
 
 export const PLAN_LIMITS = {
-  FREE: 0,
+  FREE: 1,
   STARTER: 15,
   PRO: 50,
 } as const

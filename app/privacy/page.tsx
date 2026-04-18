@@ -7,7 +7,7 @@ export default function PrivacyPage() {
       {[
         {
           title: '1. Information We Collect',
-          body: 'We collect your email address and name when you sign in with Google. We collect property photos you upload and listing information you enter (address, price, beds, baths). We collect usage data including the number of renders you perform per billing cycle.'
+          body: 'We collect your email address and authentication details when you sign in with Google or email/password. We collect property photos you upload and listing information you enter (address, price, beds, baths). We collect usage data including the number of renders you perform per billing cycle.'
         },
         {
           title: '2. How We Use Your Information',
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         },
         {
           title: '3. Photo and Media Storage',
-          body: 'Photos you upload are stored securely in AWS S3. Original high-resolution files and compressed proxy versions are stored under your project. You retain full ownership of all photos and media you upload. We do not use your photos for any purpose other than rendering your requested videos.'
+          body: 'Photos you upload are stored securely in AWS S3. Original high-resolution files and compressed proxy versions are stored under your project. You retain full ownership of all photos and media you upload, including generated videos. We do not use your photos for any purpose other than rendering your requested videos.'
         },
         {
           title: '4. Payment Information',
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
         },
         {
           title: '6. Cookies and Authentication',
-          body: 'We use cookies solely to maintain your login session. We use Google OAuth for authentication. No advertising or tracking cookies are used.'
+          body: 'We use cookies solely to maintain your login session. Authentication supports Google OAuth and email/password credentials. No advertising or tracking cookies are used.'
         },
         {
           title: '7. Security',

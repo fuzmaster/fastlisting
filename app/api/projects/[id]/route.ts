@@ -1,23 +1,34 @@
 import { NextResponse } from 'next/server'
-import { updateProject } from '@/lib/db/projects'
+import { auth } from '@/auth'
+import { getProjectById, updateProject } from '@/lib/db/projects'
+import { projectPatchSchema } from '@/lib/validation'
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
-  const body = await request.json().catch(() => null)
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  if (!body) {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    const { id } = await params
+    const body = await request.json().catch(() => null)
+    const parsed = projectPatchSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    const project = await getProjectById(id)
+    if (!project || project.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+    }
+
+    const updated = await updateProject(id, parsed.data)
+    return NextResponse.json(updated)
+  } catch {
+    return NextResponse.json({ error: 'Failed to update project' }, { status: 500 })
   }
-
-  const allowed = ['address', 'price', 'beds', 'baths', 'brandPresetId', 'audioTrackId', 'video16x9Url', 'video9x16Url', 'status']
-  const data: Record<string, string> = {}
-  for (const key of allowed) {
-    if (body[key] !== undefined) data[key] = body[key]
-  }
-
-  const project = await updateProject(id, data)
-  return NextResponse.json(project)
 }

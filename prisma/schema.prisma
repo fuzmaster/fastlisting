@@ -10,6 +10,7 @@ datasource db {
 model User {
   id               String        @id @default(uuid())
   email            String        @unique
+  passwordHash     String?
   stripeCustomerId String?
   planTier         String        @default("FREE")
   monthlyUsage     Int           @default(0)

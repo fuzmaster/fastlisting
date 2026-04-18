@@ -24,11 +24,24 @@ export function getBrandPresetsByUserId(userId: string) {
   return prisma.brandPreset.findMany({ where: { userId } })
 }
 
-export function createBrandPreset(userId: string, name: string) {
+export function createBrandPreset(
+  userId: string,
+  data: {
+    name: string
+    agentName?: string | null
+    brokerageName?: string | null
+    primaryColor?: string
+    secondaryColor?: string | null
+  }
+) {
   return prisma.brandPreset.create({
     data: {
       userId,
-      name,
+      name: data.name,
+      agentName: data.agentName,
+      brokerageName: data.brokerageName,
+      primaryColor: data.primaryColor,
+      secondaryColor: data.secondaryColor,
     },
   })
 }

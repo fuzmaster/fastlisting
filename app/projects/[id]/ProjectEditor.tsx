@@ -20,14 +20,13 @@ function toSlug(str: string): string {
 
 interface ProjectEditorProps {
   project: Project
-  userId: string
   rendersRemaining: number
   planTier: string
 }
 interface RenderResult { renderId16x9: string; renderId9x16: string; bucketName: string }
 interface RenderStatus { done: boolean; outputFile: string | null; overallProgress: number; errors: unknown[] }
 
-export function ProjectEditor({ project, userId, rendersRemaining, planTier }: ProjectEditorProps) {
+export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEditorProps) {
   const [photos, setPhotos] = useState<PhotoItem[]>((project.photos as unknown as PhotoItem[]) ?? [])
   const [address, setAddress] = useState(project.address ?? '')
   const [price, setPrice] = useState(project.price ?? '')
@@ -53,8 +52,8 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
   useEffect(() => { photosRef.current = photos }, [photos])
 
   useEffect(() => {
-    fetch(`/api/brand-presets?userId=${userId}`).then(r => r.json()).then(setPresets).catch(() => {})
-  }, [userId])
+    fetch('/api/brand-presets').then(r => r.json()).then(setPresets).catch(() => {})
+  }, [])
 
   function stopPolling() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
@@ -202,7 +201,7 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
     if (!newPresetName.trim()) return
     const res = await fetch('/api/brand-presets', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, name: newPresetName.trim() }),
+      body: JSON.stringify({ name: newPresetName.trim() }),
     })
     const preset = await res.json()
     setPresets(prev => [...prev, preset]); setNewPresetName('')
@@ -343,7 +342,7 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
                 fontWeight: 600,
                 color: localRemaining === 0 ? '#FCA5A5' : localRemaining <= 3 ? '#FCD34D' : '#86EFAC',
               }}>
-                {localRemaining} / {planTier === 'PRO' ? 50 : planTier === 'STARTER' ? 15 : 0}
+                {localRemaining} / {planTier === 'PRO' ? 50 : planTier === 'STARTER' ? 15 : 1}
               </span>
             </div>
 

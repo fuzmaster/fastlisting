@@ -27,6 +27,10 @@ export default async function ProjectPage({
     )
   }
 
+  if (project.userId !== session.user.id) {
+    redirect('/dashboard')
+  }
+
   const planTier = (user?.planTier ?? 'FREE') as keyof typeof PLAN_LIMITS
   const limit = PLAN_LIMITS[planTier] ?? 0
   const used = user?.monthlyUsage ?? 0
@@ -36,7 +40,6 @@ export default async function ProjectPage({
     <main>
       <ProjectEditor
         project={project}
-        userId={session.user.id}
         rendersRemaining={remaining}
         planTier={planTier}
       />

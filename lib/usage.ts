@@ -5,8 +5,7 @@ export async function checkUsageAllowed(userId: string): Promise<void> {
   const user = await getUserById(userId)
   if (!user) throw new Error('User not found')
 
-  const limit = PLAN_LIMITS[user.planTier as keyof typeof PLAN_LIMITS] ?? 0
-  if (limit === 0) throw new Error('Free plan cannot render. Please upgrade.')
+  const limit = PLAN_LIMITS[user.planTier as keyof typeof PLAN_LIMITS] ?? 1
   if (user.monthlyUsage >= limit) throw new Error(`Monthly limit of ${limit} renders reached. Please upgrade.`)
 }
 

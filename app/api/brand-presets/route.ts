@@ -1,28 +1,39 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 
 import { createBrandPreset, getBrandPresetsByUserId } from '@/lib/db/brand-presets'
+import { brandPresetCreateSchema } from '@/lib/validation'
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const userId = searchParams.get('userId')
+export async function GET() {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  if (!userId) {
-    return NextResponse.json({ error: 'userId is required' }, { status: 400 })
+    const presets = await getBrandPresetsByUserId(session.user.id)
+    return NextResponse.json(presets)
+  } catch {
+    return NextResponse.json({ error: 'Failed to fetch presets' }, { status: 500 })
   }
-
-  const presets = await getBrandPresetsByUserId(userId)
-  return NextResponse.json(presets)
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null)
-  const userId = body?.userId
-  const name = body?.name
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  if (!userId || !name) {
-    return NextResponse.json({ error: 'userId and name are required' }, { status: 400 })
+    const body = await request.json().catch(() => null)
+    const parsed = brandPresetCreateSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid preset data' }, { status: 400 })
+    }
+
+    const preset = await createBrandPreset(session.user.id, parsed.data)
+    return NextResponse.json(preset)
+  } catch {
+    return NextResponse.json({ error: 'Failed to create preset' }, { status: 500 })
   }
-
-  const preset = await createBrandPreset(userId, name)
-  return NextResponse.json(preset)
 }

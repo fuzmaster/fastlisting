@@ -1,0 +1,56 @@
+.shell {
+  min-height: calc(100vh - 68px);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.card {
+  width: min(560px, 100%);
+  padding: 1.25rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.7rem;
+  font-weight: 650;
+}
+
+.active {
+  background: var(--primary);
+}
+
+.form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.hint {
+  color: var(--text-subtle);
+  font-size: 0.93rem;
+  line-height: 1.6;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.95rem;
+}
+
+.success {
+  color: var(--success);
+  font-size: 0.95rem;
+}

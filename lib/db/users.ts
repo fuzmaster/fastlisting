@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 type UserUpdateData = Partial<
   Pick<
     User,
-    'email' | 'stripeCustomerId' | 'planTier' | 'monthlyUsage' | 'billingCycleEnd'
+    'email' | 'passwordHash' | 'stripeCustomerId' | 'planTier' | 'monthlyUsage' | 'billingCycleEnd'
   >
 >
 
@@ -17,10 +17,11 @@ export function getUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } })
 }
 
-export function createUser(email: string) {
+export function createUser(email: string, passwordHash?: string) {
   return prisma.user.create({
     data: {
       email,
+      passwordHash,
     },
   })
 }

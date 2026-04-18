@@ -27,7 +27,7 @@ export default function TermsPage() {
         },
         {
           title: '6. Subscription and Billing',
-          body: 'Subscriptions are billed monthly. Render limits reset at the start of each billing cycle. Unused renders do not roll over. Downgrades take effect at the next billing cycle. You may cancel at any time; access continues until the end of the current billing period. No refunds are issued for partial months.'
+          body: 'Subscriptions are billed monthly. New accounts include one free trial render. Render limits reset at the start of each billing cycle. Unused renders do not roll over. Downgrades take effect at the next billing cycle. You may cancel at any time; access continues until the end of the current billing period. Paid plans include a 14-day satisfaction refund guarantee from first charge date.'
         },
         {
           title: '7. Service Availability',

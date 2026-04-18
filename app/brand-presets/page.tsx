@@ -17,7 +17,7 @@ export default async function BrandPresetsPage() {
           Save agent and brokerage details once. Apply to any project instantly.
         </p>
       </div>
-      <BrandPresetsEditor presets={presets} userId={session.user.id} />
+      <BrandPresetsEditor presets={presets} />
     </main>
   )
 }
