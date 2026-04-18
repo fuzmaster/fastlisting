@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Project } from '@prisma/client'
 import { Player } from '@remotion/player'
 import { PhotoItem } from '@/lib/types'
@@ -20,13 +20,14 @@ function toSlug(str: string): string {
 
 interface ProjectEditorProps {
   project: Project
+  userId: string
   rendersRemaining: number
   planTier: string
 }
 interface RenderResult { renderId16x9: string; renderId9x16: string; bucketName: string }
 interface RenderStatus { done: boolean; outputFile: string | null; overallProgress: number; errors: unknown[] }
 
-export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEditorProps) {
+export function ProjectEditor({ project, userId, rendersRemaining, planTier }: ProjectEditorProps) {
   const [photos, setPhotos] = useState<PhotoItem[]>((project.photos as unknown as PhotoItem[]) ?? [])
   const [address, setAddress] = useState(project.address ?? '')
   const [price, setPrice] = useState(project.price ?? '')
@@ -42,27 +43,49 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
   const [renderProgress, setRenderProgress] = useState(0)
   const [renderFailed, setRenderFailed] = useState(false)
   const [focusPickerPhotoId, setFocusPickerPhotoId] = useState<string | null>(null)
+  const [previewAspect, setPreviewAspect] = useState<'16:9' | '9:16'>('16:9')
+  const [savedField, setSavedField] = useState<string | null>(null)
   const [downloadUrls, setDownloadUrls] = useState<{ url16x9: string | null; url9x16: string | null }>({
     url16x9: project.video16x9Url ?? null,
     url9x16: project.video9x16Url ?? null,
   })
   const [localRemaining, setLocalRemaining] = useState(rendersRemaining)
+
   const pollRef = useRef<NodeJS.Timeout | null>(null)
+  const savePhotosTimerRef = useRef<NodeJS.Timeout | null>(null)
   const photosRef = useRef(photos)
   useEffect(() => { photosRef.current = photos }, [photos])
 
   useEffect(() => {
-    fetch('/api/brand-presets').then(r => r.json()).then(setPresets).catch(() => {})
-  }, [])
+    fetch(`/api/brand-presets?userId=${userId}`).then(r => r.json()).then(setPresets).catch(() => {})
+  }, [userId])
 
   function stopPolling() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
   }
 
+  // Debounced save to prevent race conditions
+  const debouncedSavePhotos = useCallback((updated: PhotoItem[]) => {
+    if (savePhotosTimerRef.current) clearTimeout(savePhotosTimerRef.current)
+    savePhotosTimerRef.current = setTimeout(async () => {
+      await fetch(`/api/projects/${project.id}/photos`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photos: updated }),
+      })
+    }, 400)
+  }, [project.id])
+
+  async function saveField(field: string, value: string) {
+    await fetch(`/api/projects/${project.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value }),
+    })
+    setSavedField(field)
+    setTimeout(() => setSavedField(null), 2000)
+  }
+
   async function resetRender() {
-    setRenderFailed(false)
-    setGenerateMessage('')
-    setRenderProgress(0)
+    setRenderFailed(false); setGenerateMessage(''); setRenderProgress(0)
     await fetch('/api/render/reset', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectId: project.id }),
@@ -74,14 +97,8 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
     pollRef.current = setInterval(async () => {
       attempts++
       if (attempts > 72) {
-        stopPolling()
-        setGenerateMessage('Render timed out.')
-        setGenerating(false)
-        setRenderFailed(true)
-        await fetch('/api/render/reset', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId: project.id }),
-        })
+        stopPolling(); setGenerateMessage('Render timed out.'); setGenerating(false); setRenderFailed(true)
+        await fetch('/api/render/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id }) })
         return
       }
       try {
@@ -91,32 +108,18 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
         ])
         const s16: RenderStatus = await a.json()
         const s9: RenderStatus = await b.json()
-
-        // Check for errors
         const hasErrors = (s16.errors?.length ?? 0) > 0 || (s9.errors?.length ?? 0) > 0
         if (hasErrors) {
-          stopPolling()
-          setGenerating(false)
-          setRenderFailed(true)
+          stopPolling(); setGenerating(false); setRenderFailed(true)
           setGenerateMessage('Render failed. You can retry without using another render credit.')
-          await fetch('/api/render/reset', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId: project.id }),
-          })
+          await fetch('/api/render/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id }) })
           return
         }
-
         setRenderProgress(Math.round(((s16.overallProgress ?? 0) + (s9.overallProgress ?? 0)) / 2 * 100))
-
         if (s16.done && s9.done) {
-          stopPolling()
-          setGenerating(false)
-          setRenderProgress(100)
-          setGenerateMessage('Renders complete!')
-          setRenderFailed(false)
+          stopPolling(); setGenerating(false); setRenderProgress(100); setGenerateMessage('Renders complete!'); setRenderFailed(false)
           setLocalRemaining(prev => Math.max(0, prev - 1))
-          const url16x9 = s16.outputFile ?? null
-          const url9x16 = s9.outputFile ?? null
+          const url16x9 = s16.outputFile ?? null; const url9x16 = s9.outputFile ?? null
           setDownloadUrls({ url16x9, url9x16 })
           if (url16x9 || url9x16) {
             await fetch(`/api/projects/${project.id}`, {
@@ -127,20 +130,6 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
         }
       } catch { /* keep polling */ }
     }, 5000)
-  }
-
-  async function savePhotos(updated: PhotoItem[]) {
-    await fetch(`/api/projects/${project.id}/photos`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos: updated }),
-    })
-  }
-
-  async function saveField(field: string, value: string) {
-    await fetch(`/api/projects/${project.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [field]: value }),
-    })
   }
 
   function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -169,7 +158,7 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
           const updated = [...photosRef.current, newPhoto]
           photosRef.current = updated
           setPhotos([...updated])
-          await savePhotos(updated)
+          debouncedSavePhotos(updated)
         } catch { /* continue */ }
       }
       setUploadStatus(`${photosRef.current.length} photo(s) ready.`)
@@ -181,12 +170,12 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
     const target = direction === 'up' ? index - 1 : index + 1
     if (target < 0 || target >= updated.length) return
     ;[updated[index], updated[target]] = [updated[target], updated[index]]
-    setPhotos(updated); savePhotos(updated)
+    setPhotos(updated); debouncedSavePhotos(updated)
   }
 
   function removePhoto(index: number) {
     const updated = photos.filter((_, i) => i !== index)
-    setPhotos(updated); savePhotos(updated)
+    setPhotos(updated); debouncedSavePhotos(updated)
   }
 
   function handleFocalPointClick(e: React.MouseEvent<HTMLDivElement>, photoId: string) {
@@ -194,14 +183,14 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
     const x = Math.round(Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)))
     const y = Math.round(Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100)))
     const updated = photos.map(p => p.id === photoId ? { ...p, focusX: x, focusY: y } : p)
-    setPhotos(updated); setFocusPickerPhotoId(null); savePhotos(updated)
+    setPhotos(updated); setFocusPickerPhotoId(null); debouncedSavePhotos(updated)
   }
 
   async function createPreset() {
     if (!newPresetName.trim()) return
     const res = await fetch('/api/brand-presets', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newPresetName.trim() }),
+      body: JSON.stringify({ userId, name: newPresetName.trim() }),
     })
     const preset = await res.json()
     setPresets(prev => [...prev, preset]); setNewPresetName('')
@@ -225,6 +214,9 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
   const ss: React.CSSProperties = { backgroundColor: '#141414', border: '1px solid #262626', borderRadius: 8, padding: 24, marginBottom: 16 }
   const ls: React.CSSProperties = { display: 'block', fontSize: 12, color: '#888888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }
   const is: React.CSSProperties = { width: '100%', padding: '8px 12px', backgroundColor: '#1A1A1A', border: '1px solid #262626', borderRadius: 6, color: '#F5F5F5', fontSize: 14, outline: 'none' }
+
+  const playerWidth = previewAspect === '16:9' ? 1920 : 1080
+  const playerHeight = previewAspect === '16:9' ? 1080 : 1920
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
@@ -278,13 +270,25 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
           <div style={ss}>
             <h2 style={{ marginBottom: 16, marginTop: 0 }}>Listing Info</h2>
             <div style={{ marginBottom: 12 }}>
-              <label style={ls}>Address</label>
+              <label style={ls}>
+                Address
+                {savedField === 'address' && <span style={{ marginLeft: 8, fontSize: 11, color: '#86EFAC' }}>✓ Saved</span>}
+              </label>
               <input style={is} type="text" value={address} onChange={e => setAddress(e.target.value)} onBlur={() => saveField('address', address)} placeholder="123 Main St, City, State" />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              <div><label style={ls}>Price</label><input style={is} type="text" value={price} onChange={e => setPrice(e.target.value)} onBlur={() => saveField('price', price)} placeholder="850,000" /></div>
-              <div><label style={ls}>Beds</label><input style={is} type="text" value={beds} onChange={e => setBeds(e.target.value)} onBlur={() => saveField('beds', beds)} placeholder="4" /></div>
-              <div><label style={ls}>Baths</label><input style={is} type="text" value={baths} onChange={e => setBaths(e.target.value)} onBlur={() => saveField('baths', baths)} placeholder="2.5" /></div>
+              <div>
+                <label style={ls}>Price {savedField === 'price' && <span style={{ fontSize: 11, color: '#86EFAC' }}>✓ Saved</span>}</label>
+                <input style={is} type="text" value={price} onChange={e => setPrice(e.target.value)} onBlur={() => saveField('price', price)} placeholder="850,000" />
+              </div>
+              <div>
+                <label style={ls}>Beds {savedField === 'beds' && <span style={{ fontSize: 11, color: '#86EFAC' }}>✓ Saved</span>}</label>
+                <input style={is} type="text" value={beds} onChange={e => setBeds(e.target.value)} onBlur={() => saveField('beds', beds)} placeholder="4" />
+              </div>
+              <div>
+                <label style={ls}>Baths {savedField === 'baths' && <span style={{ fontSize: 11, color: '#86EFAC' }}>✓ Saved</span>}</label>
+                <input style={is} type="text" value={baths} onChange={e => setBaths(e.target.value)} onBlur={() => saveField('baths', baths)} placeholder="2.5" />
+              </div>
             </div>
           </div>
 
@@ -307,7 +311,7 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
           {/* AUDIO */}
           <div style={ss}>
             <h2 style={{ marginBottom: 4, marginTop: 0 }}>Audio Track</h2>
-            <p style={{ fontSize: 13, color: '#888888', marginBottom: 16 }}>Select the background music for this listing video.</p>
+            <p style={{ fontSize: 13, color: '#888888', marginBottom: 16 }}>Preview and select the background music for this video.</p>
             <AudioPicker value={audioTrackId} onChange={(id) => { setAudioTrackId(id); saveField('audioTrackId', id) }} />
           </div>
 
@@ -316,33 +320,63 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
         {/* RIGHT COLUMN */}
         <div style={{ position: 'sticky', top: 72 }}>
           <div style={{ ...ss, marginBottom: 16 }}>
-            <h2 style={{ marginBottom: 12, marginTop: 0 }}>Preview</h2>
-            <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#000', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0 }}>Preview</h2>
+              {/* Aspect ratio toggle */}
+              <div style={{ display: 'flex', gap: 2, backgroundColor: '#1A1A1A', borderRadius: 6, padding: 2 }}>
+                {(['16:9', '9:16'] as const).map(ratio => (
+                  <button
+                    key={ratio}
+                    type="button"
+                    onClick={() => setPreviewAspect(ratio)}
+                    style={{
+                      padding: '4px 10px',
+                      backgroundColor: previewAspect === ratio ? '#262626' : 'transparent',
+                      border: 'none',
+                      borderRadius: 4,
+                      color: previewAspect === ratio ? '#F5F5F5' : '#888888',
+                      fontSize: 11,
+                      fontWeight: previewAspect === ratio ? 600 : 400,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {ratio}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{
+              width: '100%',
+              aspectRatio: previewAspect === '16:9' ? '16/9' : '9/16',
+              backgroundColor: '#000',
+              borderRadius: 6,
+              overflow: 'hidden',
+              maxHeight: previewAspect === '9:16' ? 400 : undefined,
+            }}>
               <Player
                 component={ListingVideo}
                 inputProps={{ photos, address }}
                 durationInFrames={150}
                 fps={30}
-                compositionWidth={1920}
-                compositionHeight={1080}
+                compositionWidth={playerWidth}
+                compositionHeight={playerHeight}
                 style={{ width: '100%', height: '100%' }}
                 controls={false}
                 acknowledgeRemotionLicense
               />
             </div>
-            <p style={{ fontSize: 12, color: '#888888', marginTop: 8 }}>{photos.length} photo{photos.length !== 1 ? 's' : ''} · 16:9 preview</p>
+            <p style={{ fontSize: 12, color: '#888888', marginTop: 8 }}>
+              {photos.length} photo{photos.length !== 1 ? 's' : ''} · {previewAspect} preview
+            </p>
           </div>
 
           <div style={ss}>
             {/* Usage counter */}
             <div style={{ marginBottom: 16, padding: '10px 14px', backgroundColor: '#1A1A1A', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: '#888888' }}>Renders remaining</span>
-              <span style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: localRemaining === 0 ? '#FCA5A5' : localRemaining <= 3 ? '#FCD34D' : '#86EFAC',
-              }}>
-                {localRemaining} / {planTier === 'PRO' ? 50 : planTier === 'STARTER' ? 15 : 1}
+              <span style={{ fontSize: 13, fontWeight: 600, color: localRemaining === 0 ? '#FCA5A5' : localRemaining <= 3 ? '#FCD34D' : '#86EFAC' }}>
+                {localRemaining} / {planTier === 'PRO' ? 50 : planTier === 'STARTER' ? 15 : 0}
               </span>
             </div>
 
@@ -381,9 +415,7 @@ export function ProjectEditor({ project, rendersRemaining, planTier }: ProjectEd
 
             {renderFailed && (
               <div style={{ marginTop: 12, padding: '12px 14px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6 }}>
-                <p style={{ fontSize: 13, color: '#FCA5A5', margin: '0 0 10px' }}>
-                  {generateMessage || 'Render failed.'}
-                </p>
+                <p style={{ fontSize: 13, color: '#FCA5A5', margin: '0 0 10px' }}>{generateMessage || 'Render failed.'}</p>
                 <button
                   type="button"
                   onClick={async () => { await resetRender(); handleGenerate() }}

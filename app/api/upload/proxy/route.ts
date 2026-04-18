@@ -1,10 +1,15 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import sharp from 'sharp'
-
 import { getS3ObjectBuffer, s3 } from '@/lib/s3'
 
 export async function POST(request: Request) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const body = await request.json().catch(() => null)
   const highResKey = body?.highResKey
   const projectId = body?.projectId

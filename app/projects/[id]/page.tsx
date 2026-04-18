@@ -39,10 +39,11 @@ export default async function ProjectPage({
   return (
     <main>
       <ProjectEditor
-        project={project}
-        rendersRemaining={remaining}
-        planTier={planTier}
-      />
+  project={project}
+  userId={session.user.id}
+  rendersRemaining={remaining}
+  planTier={planTier}
+/>
     </main>
   )
 }
