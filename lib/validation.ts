@@ -4,6 +4,11 @@ export const projectIdSchema = z.object({
   projectId: z.string().uuid(),
 })
 
+export const renderRequestSchema = z.object({
+  projectId: z.string().uuid(),
+  styleMode: z.enum(['cinematic', 'social', 'minimal']).optional(),
+})
+
 export const projectPatchSchema = z
   .object({
     address: z.string().max(255).optional(),
@@ -38,6 +43,8 @@ export const brandPresetCreateSchema = z.object({
   brokerageName: z.string().max(120).nullable().optional(),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  logoKey: z.string().nullable().optional(),
+  headshotKey: z.string().nullable().optional(),
 })
 
 export const brandPresetPatchSchema = z
@@ -56,3 +63,13 @@ export const emailPasswordSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
 })
+
+export const listingImportSchema = z
+  .object({
+    projectId: z.string().uuid(),
+    source: z.string().url().optional(),
+    pastedText: z.string().max(10000).optional(),
+  })
+  .refine((data) => Boolean(data.source || data.pastedText?.trim()), {
+    message: 'A source URL or pasted text is required',
+  })

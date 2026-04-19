@@ -5,7 +5,7 @@ import { getProjectById, updateProject } from '@/lib/db/projects'
 import { getBrandPresetById } from '@/lib/db/brand-presets'
 import { checkUsageAllowed, incrementUsage } from '@/lib/usage'
 import { PhotoItem } from '@/lib/types'
-import { projectIdSchema } from '@/lib/validation'
+import { renderRequestSchema } from '@/lib/validation'
 
 const SERVE_URL = process.env.REMOTION_SERVE_URL ?? ''
 const FUNCTION_NAME = process.env.REMOTION_FUNCTION_NAME ?? ''
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => null)
-    const parsed = projectIdSchema.safeParse(body)
+    const parsed = renderRequestSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json({ error: 'projectId is required' }, { status: 400 })
     }
@@ -52,6 +52,10 @@ export async function POST(request: Request) {
       agentName: brandPreset?.agentName ?? '',
       brokerageName: brandPreset?.brokerageName ?? '',
       primaryColor: brandPreset?.primaryColor ?? '#E8D5B7',
+      secondaryColor: brandPreset?.secondaryColor ?? '#ffffff',
+      logoKey: brandPreset?.logoKey ?? '',
+      headshotKey: brandPreset?.headshotKey ?? '',
+      styleMode: parsed.data.styleMode ?? 'cinematic',
     }
 
     await updateProject(project.id, { status: 'RENDERING' })

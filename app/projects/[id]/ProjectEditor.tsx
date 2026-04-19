@@ -26,6 +26,16 @@ interface ProjectEditorProps {
 }
 interface RenderResult { renderId16x9: string; renderId9x16: string; bucketName: string }
 interface RenderStatus { done: boolean; outputFile: string | null; overallProgress: number; errors: unknown[] }
+interface BrandPresetOption {
+  id: string
+  name: string
+  agentName: string | null
+  brokerageName: string | null
+  primaryColor: string
+  secondaryColor: string | null
+  logoKey: string | null
+  headshotKey: string | null
+}
 
 export function ProjectEditor({ project, userId, rendersRemaining, planTier }: ProjectEditorProps) {
   const [photos, setPhotos] = useState<PhotoItem[]>((project.photos as unknown as PhotoItem[]) ?? [])
@@ -33,7 +43,12 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
   const [price, setPrice] = useState(project.price ?? '')
   const [beds, setBeds] = useState(project.beds ?? '')
   const [baths, setBaths] = useState(project.baths ?? '')
-  const [presets, setPresets] = useState<{ id: string; name: string }[]>([])
+  const [listingSource, setListingSource] = useState('')
+  const [listingPaste, setListingPaste] = useState('')
+  const [importingListing, setImportingListing] = useState(false)
+  const [importMessage, setImportMessage] = useState('')
+  const [styleMode, setStyleMode] = useState<'cinematic' | 'social' | 'minimal'>('cinematic')
+  const [presets, setPresets] = useState<BrandPresetOption[]>([])
   const [brandPresetId, setBrandPresetId] = useState(project.brandPresetId ?? '')
   const [audioTrackId, setAudioTrackId] = useState(project.audioTrackId ?? 'track_1')
   const [newPresetName, setNewPresetName] = useState('')
@@ -59,6 +74,8 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
   useEffect(() => {
     fetch(`/api/brand-presets?userId=${userId}`).then(r => r.json()).then(setPresets).catch(() => {})
   }, [userId])
+
+  const selectedPreset = presets.find((preset) => preset.id === brandPresetId) ?? null
 
   function stopPolling() {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
@@ -88,7 +105,7 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
     setRenderFailed(false); setGenerateMessage(''); setRenderProgress(0)
     await fetch('/api/render/reset', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId: project.id }),
+      body: JSON.stringify({ projectId: project.id, styleMode }),
     })
   }
 
@@ -196,6 +213,41 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
     setPresets(prev => [...prev, preset]); setNewPresetName('')
   }
 
+  async function handleImportListing() {
+    if (!listingSource.trim() && !listingPaste.trim()) return
+
+    setImportingListing(true)
+    setImportMessage('')
+
+    try {
+      const res = await fetch('/api/projects/import-listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          ...(listingSource.trim() ? { source: listingSource.trim() } : {}),
+          ...(listingPaste.trim() ? { pastedText: listingPaste.trim() } : {}),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setImportMessage(data.error ?? 'Could not import listing details.')
+        return
+      }
+
+      setAddress(data.project.address ?? '')
+      setPrice(data.project.price ?? '')
+      setBeds(data.project.beds ?? '')
+      setBaths(data.project.baths ?? '')
+      setImportMessage('Listing details imported.')
+    } catch {
+      setImportMessage('Could not import listing details.')
+    } finally {
+      setImportingListing(false)
+    }
+  }
+
   async function handleGenerate() {
     setGenerating(true); setGenerateMessage('Starting renders...'); setRenderProgress(0)
     setRenderFailed(false); setDownloadUrls({ url16x9: null, url9x16: null }); stopPolling()
@@ -217,6 +269,34 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
 
   const playerWidth = previewAspect === '16:9' ? 1920 : 1080
   const playerHeight = previewAspect === '16:9' ? 1080 : 1920
+  const checklistItems = [
+    { label: 'Upload at least 8 listing photos', done: photos.length >= 8, help: `${photos.length}/8 added` },
+    { label: 'Add address and property details', done: Boolean(address.trim() && price.trim() && beds.trim() && baths.trim()), help: 'Address, price, beds, baths' },
+    { label: 'Choose a brand preset', done: Boolean(selectedPreset), help: selectedPreset ? selectedPreset.name : 'Select or create one' },
+    { label: 'Pick a music track', done: Boolean(audioTrackId), help: audioTrackId.replace('_', ' ') },
+    { label: 'Choose a video style', done: Boolean(styleMode), help: styleMode },
+  ]
+  const completedChecklistCount = checklistItems.filter((item) => item.done).length
+  const captionBase = [
+    address ? `Just listed: ${address}` : 'Fresh new listing now live',
+    price ? `Offered at $${price}` : '',
+    beds || baths ? `${beds || '?'} bed · ${baths || '?'} bath` : '',
+    selectedPreset?.brokerageName ? `${selectedPreset.brokerageName}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+  const captionShort = `${address || 'New listing'}${price ? ` for $${price}` : ''}. ${beds || baths ? `${beds || '?'} bed, ${baths || '?'} bath. ` : ''}DM for details.`
+  const captionSocial = `${captionBase}\n\nMessage ${selectedPreset?.agentName || 'us'} for a private tour.\n\n#realestate #justlisted #dreamhome #listingvideo`
+
+  async function copyText(value: string, successLabel: string) {
+    try {
+      await navigator.clipboard.writeText(value)
+      setGenerateMessage(successLabel)
+      setTimeout(() => setGenerateMessage((current) => (current === successLabel ? '' : current)), 2000)
+    } catch {
+      setGenerateMessage('Could not copy text.')
+    }
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
@@ -269,6 +349,35 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
           {/* LISTING INFO */}
           <div style={ss}>
             <h2 style={{ marginBottom: 16, marginTop: 0 }}>Listing Info</h2>
+            <div style={{ marginBottom: 16, padding: '14px 16px', borderRadius: 8, border: '1px solid #262626', backgroundColor: '#101010' }}>
+              <label style={{ ...ls, marginBottom: 8 }}>Import From Listing URL</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input
+                  style={{ ...is, flex: 1, minWidth: 220 }}
+                  type="url"
+                  value={listingSource}
+                  onChange={(e) => setListingSource(e.target.value)}
+                  placeholder="Paste Zillow, Redfin, MLS, or brokerage page URL"
+                />
+                <button
+                  type="button"
+                  onClick={handleImportListing}
+                  disabled={importingListing || !listingSource.trim()}
+                  style={{ padding: '8px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 13, whiteSpace: 'nowrap' }}
+                >
+                  {importingListing ? 'Importing...' : 'Import'}
+                </button>
+              </div>
+              <textarea
+                style={{ ...is, marginTop: 10, minHeight: 92, resize: 'vertical' }}
+                value={listingPaste}
+                onChange={(e) => setListingPaste(e.target.value)}
+                placeholder="Or paste a listing description, MLS remarks, or property details here."
+              />
+              <p style={{ fontSize: 12, color: importMessage.includes('imported') ? '#86EFAC' : '#888888', marginTop: 8, marginBottom: 0 }}>
+                {importMessage || 'We will try to pull address, price, beds, and baths from the page or pasted text.'}
+              </p>
+            </div>
             <div style={{ marginBottom: 12 }}>
               <label style={ls}>
                 Address
@@ -302,6 +411,44 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
                 {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
+            {selectedPreset ? (
+              <div style={{ marginBottom: 16, padding: '14px 16px', backgroundColor: '#101010', border: '1px solid #262626', borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: selectedPreset.primaryColor, border: '1px solid rgba(255,255,255,0.12)' }} />
+                  <strong style={{ fontSize: 14 }}>{selectedPreset.name}</strong>
+                  {selectedPreset.secondaryColor ? (
+                    <span style={{ fontSize: 12, color: '#888888' }}>Accent {selectedPreset.secondaryColor}</span>
+                  ) : null}
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {selectedPreset.logoKey ? (
+                    <img
+                      src={getS3Url(selectedPreset.logoKey)}
+                      alt={`${selectedPreset.name} logo`}
+                      style={{ maxWidth: 100, maxHeight: 30, objectFit: 'contain', display: 'block' }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 12, color: '#666666' }}>No logo</span>
+                  )}
+                  {selectedPreset.headshotKey ? (
+                    <img
+                      src={getS3Url(selectedPreset.headshotKey)}
+                      alt={`${selectedPreset.name} headshot`}
+                      style={{ width: 42, height: 42, objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 12, color: '#666666' }}>No headshot</span>
+                  )}
+                  <div style={{ minWidth: 180 }}>
+                    <div style={{ fontSize: 13, color: '#F5F5F5' }}>{selectedPreset.agentName || 'No agent name set'}</div>
+                    <div style={{ fontSize: 12, color: '#888888' }}>{selectedPreset.brokerageName || 'No brokerage set'}</div>
+                  </div>
+                  <a href="/brand-presets" style={{ fontSize: 12, color: '#E8D5B7', textDecoration: 'underline' }}>
+                    Edit presets
+                  </a>
+                </div>
+              </div>
+            ) : null}
             <div style={{ display: 'flex', gap: 8 }}>
               <input style={{ ...is, flex: 1 }} type="text" placeholder="New preset name" value={newPresetName} onChange={e => setNewPresetName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createPreset()} />
               <button type="button" onClick={createPreset} style={{ padding: '8px 16px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 13, whiteSpace: 'nowrap' }}>Create</button>
@@ -320,6 +467,68 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
         {/* RIGHT COLUMN */}
         <div style={{ position: 'sticky', top: 72 }}>
           <div style={{ ...ss, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12 }}>
+              <h2 style={{ margin: 0 }}>Launch Checklist</h2>
+              <span style={{ fontSize: 12, color: '#888888' }}>{completedChecklistCount}/{checklistItems.length} done</span>
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {checklistItems.map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    backgroundColor: item.done ? 'rgba(134,239,172,0.08)' : '#101010',
+                    border: item.done ? '1px solid rgba(134,239,172,0.18)' : '1px solid #222222',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, color: '#F5F5F5' }}>{item.label}</div>
+                    <div style={{ fontSize: 12, color: '#888888', marginTop: 2 }}>{item.help}</div>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: item.done ? '#86EFAC' : '#666666' }}>
+                    {item.done ? 'DONE' : 'NEXT'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: '#888888', marginTop: 12, marginBottom: 0 }}>
+              Fastest path: upload photos, select branding, then render both aspect ratios in one run.
+            </p>
+          </div>
+
+          <div style={{ ...ss, marginBottom: 16 }}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={ls}>Video Style</label>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {[
+                  { id: 'cinematic', title: 'Cinematic', description: 'Slower pacing, refined overlays, polished showcase feel.' },
+                  { id: 'social', title: 'Social', description: 'Faster pace, punchier motion, stronger mobile-first energy.' },
+                  { id: 'minimal', title: 'Minimal', description: 'Cleaner motion, restrained graphics, understated luxury.' },
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setStyleMode(option.id as 'cinematic' | 'social' | 'minimal')}
+                    style={{
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: styleMode === option.id ? '1px solid rgba(232,213,183,0.6)' : '1px solid #222222',
+                      backgroundColor: styleMode === option.id ? 'rgba(232,213,183,0.08)' : '#101010',
+                      color: '#F5F5F5',
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{option.title}</div>
+                    <div style={{ fontSize: 12, color: '#888888', marginTop: 3 }}>{option.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h2 style={{ margin: 0 }}>Preview</h2>
               {/* Aspect ratio toggle */}
@@ -356,7 +565,22 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
             }}>
               <Player
                 component={ListingVideo}
-                inputProps={{ photos, address }}
+                inputProps={{
+                  photos,
+                  address,
+                  price,
+                  beds,
+                  baths,
+                  audioTrackId,
+                  aspectRatio: previewAspect,
+                  agentName: selectedPreset?.agentName ?? '',
+                  brokerageName: selectedPreset?.brokerageName ?? '',
+                  primaryColor: selectedPreset?.primaryColor ?? '#E8D5B7',
+                  secondaryColor: selectedPreset?.secondaryColor ?? '#F5F5F5',
+                  logoKey: selectedPreset?.logoKey ?? '',
+                  headshotKey: selectedPreset?.headshotKey ?? '',
+                  styleMode,
+                }}
                 durationInFrames={150}
                 fps={30}
                 compositionWidth={playerWidth}
@@ -367,7 +591,10 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
               />
             </div>
             <p style={{ fontSize: 12, color: '#888888', marginTop: 8 }}>
-              {photos.length} photo{photos.length !== 1 ? 's' : ''} · {previewAspect} preview
+              {photos.length} photo{photos.length !== 1 ? 's' : ''} · {previewAspect} preview · {styleMode} style
+            </p>
+            <p style={{ fontSize: 12, color: '#666666', marginTop: 4, marginBottom: 0 }}>
+              Preview now reflects listing info, music choice, and selected brand kit.
             </p>
           </div>
 
@@ -440,6 +667,36 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
                       ↓ Download 9:16 (Vertical)
                     </a>
                   )}
+                </div>
+              </div>
+            )}
+
+            {(address || price || beds || baths) && (
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #262626' }}>
+                <p style={{ fontSize: 12, color: '#888888', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Kit</p>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ padding: '10px 12px', borderRadius: 8, backgroundColor: '#101010', border: '1px solid #222222' }}>
+                    <div style={{ fontSize: 12, color: '#888888', marginBottom: 6 }}>Short caption</div>
+                    <div style={{ fontSize: 13, color: '#F5F5F5', whiteSpace: 'pre-wrap' }}>{captionShort}</div>
+                    <button
+                      type="button"
+                      onClick={() => copyText(captionShort, 'Short caption copied.')}
+                      style={{ marginTop: 10, padding: '8px 12px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 12 }}
+                    >
+                      Copy short caption
+                    </button>
+                  </div>
+                  <div style={{ padding: '10px 12px', borderRadius: 8, backgroundColor: '#101010', border: '1px solid #222222' }}>
+                    <div style={{ fontSize: 12, color: '#888888', marginBottom: 6 }}>Social post</div>
+                    <div style={{ fontSize: 13, color: '#F5F5F5', whiteSpace: 'pre-wrap' }}>{captionSocial}</div>
+                    <button
+                      type="button"
+                      onClick={() => copyText(captionSocial, 'Social post copied.')}
+                      style={{ marginTop: 10, padding: '8px 12px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 12 }}
+                    >
+                      Copy social post
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

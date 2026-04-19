@@ -18,6 +18,7 @@ export interface RenderPayload {
   agentName?: string
   brokerageName?: string
   primaryColor?: string
+  secondaryColor?: string
   logoKey?: string
   headshotKey?: string
 }

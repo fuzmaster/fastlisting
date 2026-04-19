@@ -32,6 +32,8 @@ export function createBrandPreset(
     brokerageName?: string | null
     primaryColor?: string
     secondaryColor?: string | null
+    logoKey?: string | null
+    headshotKey?: string | null
   }
 ) {
   return prisma.brandPreset.create({
@@ -42,6 +44,8 @@ export function createBrandPreset(
       brokerageName: data.brokerageName,
       primaryColor: data.primaryColor,
       secondaryColor: data.secondaryColor,
+      logoKey: data.logoKey,
+      headshotKey: data.headshotKey,
     },
   })
 }

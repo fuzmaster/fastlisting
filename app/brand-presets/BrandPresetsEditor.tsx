@@ -10,6 +10,8 @@ interface Preset {
   brokerageName: string | null
   primaryColor: string
   secondaryColor: string | null
+  logoKey: string | null
+  headshotKey: string | null
 }
 
 interface Props {
@@ -22,6 +24,16 @@ const emptyForm = {
   brokerageName: '',
   primaryColor: '#E8D5B7',
   secondaryColor: '',
+  logoKey: '',
+  headshotKey: '',
+}
+
+const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET ?? ''
+const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION ?? 'us-east-1'
+
+function getS3Url(key: string | null | undefined) {
+  if (!key) return null
+  return `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`
 }
 
 const is: React.CSSProperties = {
@@ -50,6 +62,7 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [assetUploading, setAssetUploading] = useState<'logo' | 'headshot' | ''>('')
   const [message, setMessage] = useState('')
 
   function startEdit(preset: Preset) {
@@ -60,6 +73,8 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
       brokerageName: preset.brokerageName ?? '',
       primaryColor: preset.primaryColor ?? '#E8D5B7',
       secondaryColor: preset.secondaryColor ?? '',
+      logoKey: preset.logoKey ?? '',
+      headshotKey: preset.headshotKey ?? '',
     })
     setMessage('')
   }
@@ -87,6 +102,8 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
             brokerageName: form.brokerageName.trim() || null,
             primaryColor: form.primaryColor || '#E8D5B7',
             secondaryColor: form.secondaryColor.trim() || null,
+            logoKey: form.logoKey.trim() || null,
+            headshotKey: form.headshotKey.trim() || null,
           }),
         })
         const updated = await res.json()
@@ -103,6 +120,8 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
             brokerageName: form.brokerageName.trim() || null,
             primaryColor: form.primaryColor || '#E8D5B7',
             secondaryColor: form.secondaryColor.trim() || null,
+            logoKey: form.logoKey.trim() || null,
+            headshotKey: form.headshotKey.trim() || null,
           }),
         })
         const created = await res.json()
@@ -115,6 +134,50 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
       setMessage('Something went wrong. Try again.')
     }
     setSaving(false)
+  }
+
+  async function uploadBrandAsset(file: File, kind: 'logo' | 'headshot') {
+    setAssetUploading(kind)
+    setMessage('')
+
+    try {
+      const presignRes = await fetch('/api/upload/brand-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          kind,
+        }),
+      })
+
+      if (!presignRes.ok) {
+        setMessage(`Could not upload ${kind}.`)
+        return
+      }
+
+      const { uploadUrl, key }: { uploadUrl: string; key: string } = await presignRes.json()
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+
+      if (!uploadRes.ok) {
+        setMessage(`Could not upload ${kind}.`)
+        return
+      }
+
+      setForm((current) => ({
+        ...current,
+        ...(kind === 'logo' ? { logoKey: key } : { headshotKey: key }),
+      }))
+      setMessage(`${kind === 'logo' ? 'Logo' : 'Headshot'} uploaded. Save the preset to apply it.`)
+    } catch {
+      setMessage(`Could not upload ${kind}.`)
+    } finally {
+      setAssetUploading('')
+    }
   }
 
   async function handleDelete(id: string) {
@@ -154,6 +217,25 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
             </div>
             {preset.agentName && <p style={{ fontSize: 13, color: '#888888', margin: '2px 0' }}>{preset.agentName}</p>}
             {preset.brokerageName && <p style={{ fontSize: 13, color: '#555', margin: '2px 0' }}>{preset.brokerageName}</p>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              {preset.logoKey ? (
+                <img
+                  src={getS3Url(preset.logoKey) ?? ''}
+                  alt={`${preset.name} logo`}
+                  style={{ maxWidth: 88, maxHeight: 28, objectFit: 'contain', display: 'block' }}
+                />
+              ) : null}
+              {preset.headshotKey ? (
+                <img
+                  src={getS3Url(preset.headshotKey) ?? ''}
+                  alt={`${preset.name} headshot`}
+                  style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : null}
+              {(preset.logoKey || preset.headshotKey) ? null : (
+                <span style={{ fontSize: 12, color: '#555' }}>No logo or headshot yet</span>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <button
@@ -227,6 +309,78 @@ export function BrandPresetsEditor({ presets: initialPresets }: Props) {
                 onChange={e => setForm(f => ({ ...f, secondaryColor: e.target.value }))}
                 placeholder="#ffffff (optional)"
               />
+            </div>
+          </div>
+          <div>
+            <label style={ls}>Logo</label>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 92, border: '1px dashed #3a3a3a', borderRadius: 8, cursor: 'pointer', overflow: 'hidden', backgroundColor: '#101010' }}>
+                {form.logoKey ? (
+                  <img
+                    src={getS3Url(form.logoKey) ?? ''}
+                    alt="Uploaded logo"
+                    style={{ maxWidth: '100%', maxHeight: 52, objectFit: 'contain', padding: 12 }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 13, color: '#888888' }}>
+                    {assetUploading === 'logo' ? 'Uploading logo...' : 'Upload logo'}
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file) uploadBrandAsset(file, 'logo')
+                  }}
+                />
+              </label>
+              {form.logoKey ? (
+                <button
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, logoKey: '' }))}
+                  style={{ padding: '8px 14px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                >
+                  Remove logo
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div>
+            <label style={ls}>Headshot</label>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 92, border: '1px dashed #3a3a3a', borderRadius: 8, cursor: 'pointer', overflow: 'hidden', backgroundColor: '#101010' }}>
+                {form.headshotKey ? (
+                  <img
+                    src={getS3Url(form.headshotKey) ?? ''}
+                    alt="Uploaded headshot"
+                    style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 13, color: '#888888' }}>
+                    {assetUploading === 'headshot' ? 'Uploading headshot...' : 'Upload headshot'}
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file) uploadBrandAsset(file, 'headshot')
+                  }}
+                />
+              </label>
+              {form.headshotKey ? (
+                <button
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, headshotKey: '' }))}
+                  style={{ padding: '8px 14px', backgroundColor: '#1A1A1A', border: '1px solid #262626', color: '#F5F5F5', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                >
+                  Remove headshot
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
