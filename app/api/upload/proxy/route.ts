@@ -5,7 +5,8 @@ import sharp from 'sharp'
 import { getProjectById } from '@/lib/db/projects'
 import { getS3ObjectBuffer, s3 } from '@/lib/s3'
 
-const SAFE_PHOTO_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/
+const SAFE_PHOTO_ID_MAX_LENGTH = 64
+const SAFE_PHOTO_ID_REGEX = new RegExp(`^[a-zA-Z0-9_-]{1,${SAFE_PHOTO_ID_MAX_LENGTH}}$`)
 
 export async function POST(request: Request) {
   const session = await auth()

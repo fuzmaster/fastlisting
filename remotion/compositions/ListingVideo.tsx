@@ -32,6 +32,8 @@ const INTRO_DURATION = 3 * FPS
 const PHOTO_DURATION = 4 * FPS
 const TRANSITION_DURATION = 15
 const OUTRO_DURATION = 2 * FPS
+const MIN_VERTICAL_LOWER_THIRD_FONT_SIZE = 22
+const VERTICAL_LOWER_THIRD_FONT_REDUCTION = 4
 
 function getStyleSettings(styleMode: 'cinematic' | 'social' | 'minimal' = 'cinematic') {
   if (styleMode === 'social') {
@@ -119,11 +121,19 @@ function IntroCard({ address, price, beds, baths, primaryColor, styleMode, aspec
 
   const isVertical = aspectRatio === '9:16'
 
+  const titleFontSize = isVertical
+    ? styleMode === 'social'
+      ? 52
+      : 58
+    : styleMode === 'social'
+      ? 64
+      : 72
+
   return (
     <AbsoluteFill style={{ background: style.introBackground, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ opacity, transform: `translateY(${translateY}px)`, textAlign: 'center', padding: isVertical ? '0 72px' : '0 80px', maxWidth: isVertical ? 860 : 1400 }}>
         <div style={{ width: style.accentBarWidth, height: 2, backgroundColor: accent, margin: '0 auto 32px' }} />
-        <div style={{ fontSize: isVertical ? (styleMode === 'social' ? 52 : 58) : styleMode === 'social' ? 64 : 72, fontWeight: 700, color: style.textColor, fontFamily: 'sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 24 }}>
+        <div style={{ fontSize: titleFontSize, fontWeight: 700, color: style.textColor, fontFamily: 'sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 24 }}>
           {address || 'Property Address'}
         </div>
         {meta ? (
@@ -237,7 +247,7 @@ function PhotoSlide({ photo, index, totalPhotos, address, primaryColor, styleMod
           borderRadius: styleMode === 'social' ? 14 : 0,
           maxWidth: isVertical ? '100%' : undefined,
         }}>
-          <div style={{ color: style.textColor, fontSize: isVertical ? Math.max(22, style.lowerThirdFontSize - 4) : style.lowerThirdFontSize, fontFamily: 'sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>
+          <div style={{ color: style.textColor, fontSize: isVertical ? Math.max(MIN_VERTICAL_LOWER_THIRD_FONT_SIZE, style.lowerThirdFontSize - VERTICAL_LOWER_THIRD_FONT_REDUCTION) : style.lowerThirdFontSize, fontFamily: 'sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>
             {address}
           </div>
         </div>

@@ -68,6 +68,8 @@ const betaHighlights = [
 
 const demoVideoLandscape = '/videos/fastlisting-demo-16x9.mp4'
 const demoVideoVertical = '/videos/fastlisting-demo-9x16.mp4'
+const betaHighlightCardStyle = { padding: '0.8rem 1rem', minWidth: 220 }
+const betaHighlightTextStyle = { margin: 0, color: '#d8d8d8', fontSize: 13 }
 
 export default function HomePage() {
   const [landscapeVideoReady, setLandscapeVideoReady] = useState(true)
@@ -174,8 +176,8 @@ export default function HomePage() {
 
           <div className={styles.logos}>
             {betaHighlights.map((item) => (
-              <article key={item} className="surface-card" style={{ padding: '0.8rem 1rem', minWidth: 220 }}>
-                <p style={{ margin: 0, color: '#d8d8d8', fontSize: 13 }}>{item}</p>
+              <article key={item} className="surface-card" style={betaHighlightCardStyle}>
+                <p style={betaHighlightTextStyle}>{item}</p>
               </article>
             ))}
           </div>

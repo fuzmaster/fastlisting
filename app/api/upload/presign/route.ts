@@ -4,6 +4,7 @@ import { getPresignedUploadUrl } from '@/lib/s3'
 import { getProjectById } from '@/lib/db/projects'
 
 const ALLOWED_CONTENT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MAX_FILENAME_LENGTH = 100
 
 function sanitizeFilename(filename: string) {
   const basename = filename.split('/').pop()?.split('\\').pop() ?? 'upload'
@@ -12,7 +13,7 @@ function sanitizeFilename(filename: string) {
     .replace(/[^a-zA-Z0-9._-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^\.+/, '')
-    .slice(0, 100)
+    .slice(0, MAX_FILENAME_LENGTH)
 
   return sanitized || 'upload'
 }
