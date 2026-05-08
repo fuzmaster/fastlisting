@@ -7,7 +7,7 @@ import { getS3ObjectBuffer, s3 } from '@/lib/s3'
 
 const SAFE_PHOTO_ID_MAX_LENGTH = 64
 const SAFE_PHOTO_ID_REGEX = new RegExp(`^[a-zA-Z0-9_-]{1,${SAFE_PHOTO_ID_MAX_LENGTH}}$`)
-const PROJECT_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     )
   }
 
-  if (!PROJECT_ID_REGEX.test(projectId)) {
+  if (!UUID_REGEX.test(projectId)) {
     return NextResponse.json({ error: 'Invalid projectId' }, { status: 400 })
   }
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid highResKey for project' }, { status: 400 })
   }
 
-  const isUuid = typeof photoId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(photoId)
+  const isUuid = typeof photoId === 'string' && UUID_REGEX.test(photoId)
   const isSafeId = typeof photoId === 'string' && SAFE_PHOTO_ID_REGEX.test(photoId)
   if (!isUuid && !isSafeId) {
     return NextResponse.json({ error: 'photoId must be a UUID or safe identifier' }, { status: 400 })

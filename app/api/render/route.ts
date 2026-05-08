@@ -87,6 +87,7 @@ export async function POST(request: Request) {
     ])
 
     await updateProject(project.id, {
+      renderId16x9: render16x9.renderId,
       renderId9x16: render9x16.renderId,
       renderBucketName: render9x16.bucketName,
     })
