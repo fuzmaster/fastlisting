@@ -48,7 +48,7 @@ export default function PricingPage() {
   const { data: session } = useSession()
   const [busyPlan, setBusyPlan] = useState('')
 
-  async function handleCheckout(priceId: string, plan: string) {
+  async function handleCheckout(plan: 'starter' | 'pro') {
     if (!session?.user?.id) {
       window.location.href = '/login'
       return
@@ -58,7 +58,7 @@ export default function PricingPage() {
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({ plan }),
     })
     const data = await res.json()
     if (data?.url) {
@@ -88,7 +88,7 @@ export default function PricingPage() {
             </ul>
             <button
               className="btn-secondary"
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID ?? '', 'starter')}
+              onClick={() => handleCheckout('starter')}
               disabled={busyPlan !== ''}
             >
               {busyPlan === 'starter' ? 'Redirecting...' : 'Choose Starter'}
@@ -105,7 +105,7 @@ export default function PricingPage() {
             </ul>
             <button
               className="btn-primary"
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? '', 'pro')}
+              onClick={() => handleCheckout('pro')}
               disabled={busyPlan !== ''}
             >
               {busyPlan === 'pro' ? 'Redirecting...' : 'Choose Pro'}

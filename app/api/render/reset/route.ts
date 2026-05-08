@@ -21,7 +21,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    const updated = await updateProject(project.id, { status: 'DRAFT' })
+    const updated = await updateProject(project.id, {
+      status: 'DRAFT',
+      renderId16x9: null,
+      renderId9x16: null,
+      renderBucketName: null,
+    })
     return NextResponse.json(updated)
   } catch {
     return NextResponse.json({ error: 'Failed to reset render state' }, { status: 500 })

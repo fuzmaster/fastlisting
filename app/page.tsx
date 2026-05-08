@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -59,41 +60,38 @@ const features = [
   },
 ]
 
-const testimonials = [
-  {
-    quote:
-      'FastListing replaced 6+ hours of weekly timeline editing for our team. We now deliver same-day branded videos for every listing shoot.',
-    name: 'Sarah Morgan',
-    title: 'Founder, Riverstone Media',
-    image: '/images/avatar-sarah.svg',
-  },
-  {
-    quote:
-      'The AI sequencing gets room flow right, and the vertical cut is instantly usable. We stopped exporting separate versions manually.',
-    name: 'James Kim',
-    title: 'Creative Director, Coastline Studios',
-    image: '/images/avatar-james.svg',
-  },
-  {
-    quote:
-      'Brand presets solved our biggest bottleneck. Twelve agents, one consistent look, and no hand-tuning each project anymore.',
-    name: 'Rachel Torres',
-    title: 'Producer, Summit Creative',
-    image: '/images/avatar-rachel.svg',
-  },
+const betaHighlights = [
+  'Private beta opening now',
+  'Early access teams receive onboarding support',
+  'Your feedback directly shapes launch roadmap',
 ]
 
-const logos = [
-  '/images/logo-riverstone.svg',
-  '/images/logo-coastline.svg',
-  '/images/logo-summit.svg',
-  '/images/logo-oakline.svg',
-]
-
-const demoVideoLandscape = 'https://samplelib.com/lib/preview/mp4/sample-20s.mp4'
-const demoVideoVertical = 'https://samplelib.com/lib/preview/mp4/sample-15s.mp4'
+const demoVideoLandscape = '/videos/fastlisting-demo-16x9.mp4'
+const demoVideoVertical = '/videos/fastlisting-demo-9x16.mp4'
+const betaHighlightCardStyle = { padding: '0.8rem 1rem', minWidth: 220 }
+const betaHighlightTextStyle = { margin: 0, color: '#d8d8d8', fontSize: 13 }
 
 export default function HomePage() {
+  const [landscapeVideoReady, setLandscapeVideoReady] = useState(true)
+  const [verticalVideoReady, setVerticalVideoReady] = useState(true)
+
+  const renderVideoFallback = (label: string) => (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 220,
+        color: '#888888',
+        border: '1px solid #262626',
+        borderRadius: 8,
+        backgroundColor: '#101010',
+      }}
+    >
+      {label}
+    </div>
+  )
+
   return (
     <main className={styles.main}>
       <section className={styles.hero}>
@@ -116,11 +114,15 @@ export default function HomePage() {
             <div className={styles.videoStack}>
               <div className={`${styles.videoCard} surface-card`}>
                 <p className={styles.videoLabel}>Sample output: 16:9</p>
-                <video className={styles.video} src={demoVideoLandscape} autoPlay muted loop playsInline controls />
+                {landscapeVideoReady ? (
+                  <video className={styles.video} src={demoVideoLandscape} autoPlay muted loop playsInline controls onError={() => setLandscapeVideoReady(false)} />
+                ) : renderVideoFallback('Demo video coming soon')}
               </div>
               <div className={`${styles.videoCard} surface-card`}>
                 <p className={styles.videoLabel}>Sample output: 9:16</p>
-                <video className={styles.video} src={demoVideoVertical} autoPlay muted loop playsInline controls style={{ aspectRatio: '9 / 16', maxHeight: 360, margin: '0 auto' }} />
+                {verticalVideoReady ? (
+                  <video className={styles.video} src={demoVideoVertical} autoPlay muted loop playsInline controls style={{ aspectRatio: '9 / 16', maxHeight: 360, margin: '0 auto' }} onError={() => setVerticalVideoReady(false)} />
+                ) : renderVideoFallback('Demo video coming soon')}
               </div>
             </div>
           </div>
@@ -173,8 +175,10 @@ export default function HomePage() {
           </div>
 
           <div className={styles.logos}>
-            {logos.map((logo) => (
-              <Image key={logo} src={logo} alt="Media team logo" width={260} height={58} />
+            {betaHighlights.map((item) => (
+              <article key={item} className="surface-card" style={betaHighlightCardStyle}>
+                <p style={betaHighlightTextStyle}>{item}</p>
+              </article>
             ))}
           </div>
         </div>
@@ -182,22 +186,11 @@ export default function HomePage() {
 
       <section className={styles.section}>
         <div className="container">
-          <p className="eyebrow">Testimonials</p>
-          <h2>Trusted by real estate media professionals</h2>
-          <div className={styles.testimonials}>
-            {testimonials.map((item) => (
-              <article key={item.name} className={`${styles.quote} surface-card`}>
-                <p>&quot;{item.quote}&quot;</p>
-                <div className={styles.author}>
-                  <Image src={item.image} alt={`${item.name} headshot`} width={52} height={52} className={styles.avatar} />
-                  <div>
-                    <strong>{item.name}</strong>
-                    <p className="text-subtle" style={{ margin: 0 }}>{item.title}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+          <p className="eyebrow">Private beta</p>
+          <h2>Private beta opening now for select teams</h2>
+          <article className={`${styles.quote} surface-card`}>
+            <p>We are onboarding early users now. Join the private beta to help shape the final public MVP launch.</p>
+          </article>
         </div>
       </section>
 

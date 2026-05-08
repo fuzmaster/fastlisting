@@ -6,7 +6,7 @@ import { stripe } from '@/lib/stripe'
 import { getUserById, updateUser } from '@/lib/db/users'
 
 const checkoutSchema = z.object({
-  priceId: z.string().min(1),
+  plan: z.enum(['starter', 'pro']),
 })
 
 export async function POST(request: Request) {
@@ -19,7 +19,16 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null)
     const parsed = checkoutSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'priceId is required' }, { status: 400 })
+      return NextResponse.json({ error: 'plan must be starter or pro' }, { status: 400 })
+    }
+
+    const planToPriceId = {
+      starter: process.env.STRIPE_STARTER_PRICE_ID,
+      pro: process.env.STRIPE_PRO_PRICE_ID,
+    } as const
+    const priceId = planToPriceId[parsed.data.plan]
+    if (!priceId) {
+      return NextResponse.json({ error: 'Plan is not configured' }, { status: 400 })
     }
 
     const user = await getUserById(session.user.id)
@@ -35,7 +44,7 @@ export async function POST(request: Request) {
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
-      line_items: [{ price: parsed.data.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
       metadata: { userId: session.user.id },

@@ -120,8 +120,8 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
       }
       try {
         const [a, b] = await Promise.all([
-          fetch(`/api/render/status/${r.renderId16x9}?bucketName=${r.bucketName}`),
-          fetch(`/api/render/status/${r.renderId9x16}?bucketName=${r.bucketName}`),
+          fetch(`/api/render/status/${r.renderId16x9}?projectId=${project.id}`),
+          fetch(`/api/render/status/${r.renderId9x16}?projectId=${project.id}`),
         ])
         const s16: RenderStatus = await a.json()
         const s9: RenderStatus = await b.json()
@@ -253,7 +253,7 @@ export function ProjectEditor({ project, userId, rendersRemaining, planTier }: P
     setRenderFailed(false); setDownloadUrls({ url16x9: null, url9x16: null }); stopPolling()
     const res = await fetch('/api/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectId: project.id }),
+      body: JSON.stringify({ projectId: project.id, styleMode }),
     })
     const data = await res.json()
     if (!res.ok) { setGenerateMessage(data.error ?? 'Render failed.'); setGenerating(false); return }
