@@ -48,6 +48,9 @@ model Project {
   status        String       @default("DRAFT")
   video16x9Url  String?
   video9x16Url  String?
+  renderId16x9  String?
+  renderId9x16  String?
+  renderBucketName String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }

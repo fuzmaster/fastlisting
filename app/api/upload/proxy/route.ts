@@ -2,7 +2,10 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import sharp from 'sharp'
+import { getProjectById } from '@/lib/db/projects'
 import { getS3ObjectBuffer, s3 } from '@/lib/s3'
+
+const SAFE_PHOTO_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -20,6 +23,22 @@ export async function POST(request: Request) {
       { error: 'highResKey, projectId, and photoId are required' },
       { status: 400 }
     )
+  }
+
+  const project = await getProjectById(projectId)
+  if (!project || project.userId !== session.user.id) {
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  }
+
+  const expectedPrefix = `projects/${projectId}/originals/`
+  if (!String(highResKey).startsWith(expectedPrefix)) {
+    return NextResponse.json({ error: 'Invalid highResKey for project' }, { status: 400 })
+  }
+
+  const isUuid = typeof photoId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(photoId)
+  const isSafeId = typeof photoId === 'string' && SAFE_PHOTO_ID_REGEX.test(photoId)
+  if (!isUuid && !isSafeId) {
+    return NextResponse.json({ error: 'photoId must be a UUID or safe identifier' }, { status: 400 })
   }
 
   const originalBuffer = await getS3ObjectBuffer(highResKey)

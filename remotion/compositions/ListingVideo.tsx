@@ -87,13 +87,14 @@ function getStyleSettings(styleMode: 'cinematic' | 'social' | 'minimal' = 'cinem
   }
 }
 
-function IntroCard({ address, price, beds, baths, primaryColor, styleMode }: {
+function IntroCard({ address, price, beds, baths, primaryColor, styleMode, aspectRatio }: {
   address: string
   price?: string
   beds?: string
   baths?: string
   primaryColor?: string
   styleMode?: 'cinematic' | 'social' | 'minimal'
+  aspectRatio?: '16:9' | '9:16'
 }) {
   const frame = useCurrentFrame()
   const accent = primaryColor ?? '#E8D5B7'
@@ -116,15 +117,17 @@ function IntroCard({ address, price, beds, baths, primaryColor, styleMode }: {
     baths ? `${baths} ba` : null,
   ].filter(Boolean).join('  ·  ')
 
+  const isVertical = aspectRatio === '9:16'
+
   return (
     <AbsoluteFill style={{ background: style.introBackground, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ opacity, transform: `translateY(${translateY}px)`, textAlign: 'center', padding: '0 80px', maxWidth: 1400 }}>
+      <div style={{ opacity, transform: `translateY(${translateY}px)`, textAlign: 'center', padding: isVertical ? '0 72px' : '0 80px', maxWidth: isVertical ? 860 : 1400 }}>
         <div style={{ width: style.accentBarWidth, height: 2, backgroundColor: accent, margin: '0 auto 32px' }} />
-        <div style={{ fontSize: styleMode === 'social' ? 64 : 72, fontWeight: 700, color: style.textColor, fontFamily: 'sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 24 }}>
+        <div style={{ fontSize: isVertical ? (styleMode === 'social' ? 52 : 58) : styleMode === 'social' ? 64 : 72, fontWeight: 700, color: style.textColor, fontFamily: 'sans-serif', letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 24 }}>
           {address || 'Property Address'}
         </div>
         {meta ? (
-          <div style={{ fontSize: 32, color: accent, fontFamily: 'sans-serif', fontWeight: 400, letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: isVertical ? 24 : 32, color: accent, fontFamily: 'sans-serif', fontWeight: 400, letterSpacing: '0.05em' }}>
             {meta}
           </div>
         ) : null}
@@ -133,18 +136,20 @@ function IntroCard({ address, price, beds, baths, primaryColor, styleMode }: {
   )
 }
 
-function PhotoSlide({ photo, index, totalPhotos, address, primaryColor, styleMode }: {
+function PhotoSlide({ photo, index, totalPhotos, address, primaryColor, styleMode, aspectRatio }: {
   photo: PhotoItem
   index: number
   totalPhotos: number
   address: string
   primaryColor?: string
   styleMode?: 'cinematic' | 'social' | 'minimal'
+  aspectRatio?: '16:9' | '9:16'
 }) {
   const frame = useCurrentFrame()
   const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET ?? 'fastlisting-assets'
   const style = getStyleSettings(styleMode)
   const accent = primaryColor ?? '#E8D5B7'
+  const isVertical = aspectRatio === '9:16'
 
   const panDirections = ['left', 'right', 'up', 'down', 'diagonal-in', 'diagonal-out']
   const direction = panDirections[index % panDirections.length]
@@ -222,7 +227,7 @@ function PhotoSlide({ photo, index, totalPhotos, address, primaryColor, styleMod
       </AbsoluteFill>
 
       {/* Lower third */}
-      <AbsoluteFill style={{ display: 'flex', alignItems: style.lowerThirdPosition === 'top' ? 'flex-start' : 'flex-end', padding: style.lowerThirdPosition === 'top' ? '48px 36px 0' : '0 60px 48px' }}>
+      <AbsoluteFill style={{ display: 'flex', alignItems: style.lowerThirdPosition === 'top' ? 'flex-start' : 'flex-end', padding: style.lowerThirdPosition === 'top' ? (isVertical ? '84px 54px 0' : '48px 36px 0') : (isVertical ? '0 54px 96px' : '0 60px 48px') }}>
         <div style={{
           opacity: ltOpacity,
           transform: `translateY(${ltTranslateY}px)`,
@@ -230,8 +235,9 @@ function PhotoSlide({ photo, index, totalPhotos, address, primaryColor, styleMod
           padding: styleMode === 'social' ? '10px 18px' : '12px 24px',
           borderLeft: `3px solid ${accent}`,
           borderRadius: styleMode === 'social' ? 14 : 0,
+          maxWidth: isVertical ? '100%' : undefined,
         }}>
-          <div style={{ color: style.textColor, fontSize: style.lowerThirdFontSize, fontFamily: 'sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>
+          <div style={{ color: style.textColor, fontSize: isVertical ? Math.max(22, style.lowerThirdFontSize - 4) : style.lowerThirdFontSize, fontFamily: 'sans-serif', fontWeight: 500, letterSpacing: '-0.01em' }}>
             {address}
           </div>
         </div>
@@ -240,7 +246,7 @@ function PhotoSlide({ photo, index, totalPhotos, address, primaryColor, styleMod
   )
 }
 
-function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, logoKey, headshotKey, styleMode }: {
+function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, logoKey, headshotKey, styleMode, aspectRatio }: {
   agentName?: string
   brokerageName?: string
   primaryColor?: string
@@ -248,6 +254,7 @@ function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, log
   logoKey?: string
   headshotKey?: string
   styleMode?: 'cinematic' | 'social' | 'minimal'
+  aspectRatio?: '16:9' | '9:16'
 }) {
   const frame = useCurrentFrame()
   const accent = primaryColor ?? '#E8D5B7'
@@ -257,6 +264,7 @@ function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, log
   const assetBase = `https://${S3_BUCKET}.s3.us-east-1.amazonaws.com`
   const logoSrc = logoKey ? `${assetBase}/${logoKey}` : null
   const headshotSrc = headshotKey ? `${assetBase}/${headshotKey}` : null
+  const isVertical = aspectRatio === '9:16'
 
   const opacity = interpolate(frame, [0, 20, style.outroDuration - 10, style.outroDuration], [0, 1, 1, 0], {
     extrapolateLeft: 'clamp',
@@ -265,7 +273,7 @@ function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, log
 
   return (
     <AbsoluteFill style={{ background: style.introBackground, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ opacity, textAlign: 'center', padding: '0 64px', maxWidth: 1100 }}>
+      <div style={{ opacity, textAlign: 'center', padding: isVertical ? '0 72px' : '0 64px', maxWidth: isVertical ? 820 : 1100 }}>
         <div style={{ width: style.accentBarWidth, height: 2, backgroundColor: accent, margin: '0 auto 24px' }} />
         {logoSrc ? (
           <div style={{ marginBottom: 24 }}>
@@ -273,8 +281,8 @@ function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, log
             <img
               src={logoSrc}
               alt=""
-              style={{ maxWidth: 220, maxHeight: 72, objectFit: 'contain' }}
-            />
+               style={{ maxWidth: isVertical ? 180 : 220, maxHeight: isVertical ? 60 : 72, objectFit: 'contain' }}
+             />
           </div>
         ) : null}
         {headshotSrc ? (
@@ -283,19 +291,19 @@ function OutroCard({ agentName, brokerageName, primaryColor, secondaryColor, log
             <img
               src={headshotSrc}
               alt=""
-              style={{ width: 108, height: 108, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accent}` }}
-            />
+               style={{ width: isVertical ? 96 : 108, height: isVertical ? 96 : 108, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${accent}` }}
+             />
           </div>
         ) : null}
         {agentName ? (
-          <div style={{ fontSize: 48, fontWeight: 600, color: textColor, fontFamily: 'sans-serif', marginBottom: 12 }}>
-            {agentName}
-          </div>
+           <div style={{ fontSize: isVertical ? 40 : 48, fontWeight: 600, color: textColor, fontFamily: 'sans-serif', marginBottom: 12 }}>
+             {agentName}
+           </div>
         ) : null}
         {brokerageName ? (
-          <div style={{ fontSize: 28, color: accent, fontFamily: 'sans-serif', fontWeight: 400 }}>
-            {brokerageName}
-          </div>
+           <div style={{ fontSize: isVertical ? 24 : 28, color: accent, fontFamily: 'sans-serif', fontWeight: 400 }}>
+             {brokerageName}
+           </div>
         ) : null}
         {!agentName && !brokerageName ? (
           <div style={{ fontSize: 36, color: '#888888', fontFamily: 'sans-serif' }}>
@@ -320,6 +328,7 @@ export function ListingVideo({
   secondaryColor,
   logoKey,
   headshotKey,
+  aspectRatio = '16:9',
   styleMode = 'cinematic',
 }: ListingVideoProps) {
   const style = getStyleSettings(styleMode)
@@ -347,7 +356,7 @@ export function ListingVideo({
       />
 
       <Sequence from={0} durationInFrames={style.introDuration}>
-        <IntroCard address={address} price={price} beds={beds} baths={baths} primaryColor={primaryColor} styleMode={styleMode} />
+        <IntroCard address={address} price={price} beds={beds} baths={baths} primaryColor={primaryColor} styleMode={styleMode} aspectRatio={aspectRatio} />
       </Sequence>
 
       {photos.map((photo, index) => (
@@ -359,6 +368,7 @@ export function ListingVideo({
             address={address}
             primaryColor={primaryColor}
             styleMode={styleMode}
+            aspectRatio={aspectRatio}
           />
         </Sequence>
       ))}
@@ -372,6 +382,7 @@ export function ListingVideo({
           logoKey={logoKey}
           headshotKey={headshotKey}
           styleMode={styleMode}
+          aspectRatio={aspectRatio}
         />
       </Sequence>
 
