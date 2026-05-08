@@ -35,7 +35,7 @@ export function RemotionRoot() {
         height={1080}
         fps={FPS}
         durationInFrames={INTRO + 10 * PHOTO + OUTRO}
-        defaultProps={{ ...baseProps, aspectRatio: '16:9' as const }}
+        defaultProps={{ ...baseProps, aspectRatio: '16:9' }}
         calculateMetadata={calculateMetadata}
       />
       <Composition
@@ -45,7 +45,7 @@ export function RemotionRoot() {
         height={1920}
         fps={FPS}
         durationInFrames={INTRO + 10 * PHOTO + OUTRO}
-        defaultProps={{ ...baseProps, aspectRatio: '9:16' as const }}
+        defaultProps={{ ...baseProps, aspectRatio: '9:16' }}
         calculateMetadata={calculateMetadata}
       />
     </>

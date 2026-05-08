@@ -5,7 +5,7 @@ FastListing is a Next.js 16 app for generating branded real-estate listing video
 ## 1) Install
 
 ```bash
-npm ci
+npm install
 ```
 
 ## 2) Local development

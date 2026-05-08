@@ -5,6 +5,7 @@ import { getProjectById } from '@/lib/db/projects'
 
 const ALLOWED_CONTENT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_FILENAME_LENGTH = 100
+const PROJECT_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 function sanitizeFilename(filename: string) {
   const basename = filename.split('/').pop()?.split('\\').pop() ?? 'upload'
@@ -34,6 +35,10 @@ export async function POST(request: Request) {
       { error: 'filename, contentType, and projectId are required' },
       { status: 400 }
     )
+  }
+
+  if (!PROJECT_ID_REGEX.test(projectId)) {
+    return NextResponse.json({ error: 'Invalid projectId' }, { status: 400 })
   }
 
   if (!ALLOWED_CONTENT_TYPES.has(contentType)) {

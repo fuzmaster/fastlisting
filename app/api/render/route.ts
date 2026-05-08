@@ -65,30 +65,26 @@ export async function POST(request: Request) {
       renderBucketName: null,
     })
 
-    const render16x9 = await renderMediaOnLambda({
-      region: REGION,
-      functionName: FUNCTION_NAME,
-      serveUrl: SERVE_URL,
-      composition: 'ListingVideo16x9',
-      inputProps: { ...inputProps, aspectRatio: '16:9' },
-      codec: 'h264',
-      downloadBehavior: { type: 'play-in-browser' },
-    })
-
-    await updateProject(project.id, {
-      renderId16x9: render16x9.renderId,
-      renderBucketName: render16x9.bucketName,
-    })
-
-    const render9x16 = await renderMediaOnLambda({
-      region: REGION,
-      functionName: FUNCTION_NAME,
-      serveUrl: SERVE_URL,
-      composition: 'ListingVideo9x16',
-      inputProps: { ...inputProps, aspectRatio: '9:16' },
-      codec: 'h264',
-      downloadBehavior: { type: 'play-in-browser' },
-    })
+    const [render16x9, render9x16] = await Promise.all([
+      renderMediaOnLambda({
+        region: REGION,
+        functionName: FUNCTION_NAME,
+        serveUrl: SERVE_URL,
+        composition: 'ListingVideo16x9',
+        inputProps: { ...inputProps, aspectRatio: '16:9' },
+        codec: 'h264',
+        downloadBehavior: { type: 'play-in-browser' },
+      }),
+      renderMediaOnLambda({
+        region: REGION,
+        functionName: FUNCTION_NAME,
+        serveUrl: SERVE_URL,
+        composition: 'ListingVideo9x16',
+        inputProps: { ...inputProps, aspectRatio: '9:16' },
+        codec: 'h264',
+        downloadBehavior: { type: 'play-in-browser' },
+      }),
+    ])
 
     await updateProject(project.id, {
       renderId9x16: render9x16.renderId,
