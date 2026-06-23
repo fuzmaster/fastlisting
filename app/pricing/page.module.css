@@ -11,8 +11,20 @@
 .planGrid {
   margin-top: 1.5rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+  align-items: stretch;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.plan > a {
+  margin-top: auto;
+  text-align: center;
 }
 
 .plan {

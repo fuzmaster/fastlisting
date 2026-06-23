@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import styles from './page.module.css'
 
@@ -101,11 +101,29 @@ const PACKAGES = [
   },
 ]
 
+const VALID_PACKAGES = new Set(['SINGLE', 'FIVE_PACK', 'MONTHLY'])
+
 export default function IntakePage() {
+  return (
+    <Suspense fallback={null}>
+      <IntakeForm />
+    </Suspense>
+  )
+}
+
+function IntakeForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [form, setForm] = useState<FormState>(INITIAL)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const pkg = searchParams.get('package')
+    if (pkg && VALID_PACKAGES.has(pkg)) {
+      setForm((prev) => ({ ...prev, packageTier: pkg }))
+    }
+  }, [searchParams])
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))

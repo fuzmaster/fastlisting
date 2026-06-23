@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/prisma'
+import { notifyNewIntake } from '@/lib/notify'
 import { intakeSchema } from '@/lib/validation'
 
 export async function POST(request: Request) {
@@ -41,6 +42,18 @@ export async function POST(request: Request) {
         packageTier: data.packageTier || null,
         notes: data.notes || null,
       },
+    })
+
+    void notifyNewIntake({
+      id: intake.id,
+      contactName: intake.contactName,
+      contactEmail: intake.contactEmail,
+      contactPhone: intake.contactPhone,
+      brokerageName: intake.brokerageName,
+      propertyAddress: intake.propertyAddress,
+      mediaLink: intake.mediaLink,
+      packageTier: intake.packageTier,
+      deadline: intake.deadline,
     })
 
     return NextResponse.json({ ok: true, id: intake.id })

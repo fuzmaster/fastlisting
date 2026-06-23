@@ -49,6 +49,8 @@ export default async function DashboardPage({
               <strong>{remaining}</strong> / {limit} renders left
             </div>
 
+            <Link href="/admin/intakes" className="btn-secondary">Intakes</Link>
+
             {user?.stripeCustomerId ? (
               <ManageBillingButton />
             ) : (

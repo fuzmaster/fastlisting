@@ -1,116 +1,124 @@
-'use client'
-
-import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 
 import styles from './page.module.css'
 
-const starterFeatures = [
-  '15 renders/month (both 16:9 + 9:16 per render)',
-  'AI sequencing + automatic transitions',
-  'Unlimited branding presets',
-  'Licensed music library',
-  'Standard support',
-]
-
-const proFeatures = [
-  '50 renders/month (both 16:9 + 9:16 per render)',
-  'Priority queue rendering',
-  'Unlimited branding presets',
-  'Licensed music library',
-  'Priority support',
+const packages = [
+  {
+    id: 'SINGLE',
+    name: 'Single Listing',
+    price: '$149',
+    cadence: 'per listing',
+    blurb: 'Perfect for testing the workflow on a hot listing.',
+    features: [
+      'One property',
+      'Both 16:9 and 9:16 included',
+      '24-hour turnaround',
+      'Up to 30 photos',
+      'Branded with your colors + logo',
+      'Licensed music included',
+      'One free revision round',
+    ],
+  },
+  {
+    id: 'FIVE_PACK',
+    name: '5-Pack',
+    price: '$595',
+    cadence: 'one-time',
+    badge: 'Most popular',
+    blurb: 'For agents averaging a listing a week. Save $150 vs single.',
+    features: [
+      'Five properties',
+      'All formats included',
+      'Use anytime in 90 days',
+      'Up to 30 photos each',
+      'Priority queue',
+      'One free revision per video',
+      'Pay one invoice, no subscription',
+    ],
+    featured: true,
+  },
+  {
+    id: 'MONTHLY',
+    name: 'Monthly Retainer',
+    price: 'from $1,200',
+    cadence: 'per month',
+    blurb: 'For high-volume teams and brokerages.',
+    features: [
+      'Up to 15 listings/month',
+      'Same-day rush available',
+      'Dedicated turnaround slot',
+      'Custom intro/outro template',
+      'Monthly Stripe invoice',
+      'Quarterly brand refresh consult',
+    ],
+  },
 ]
 
 const faqs = [
   {
-    q: 'Is there a free trial?',
-    a: 'Yes. Every account gets one free render before payment so you can test output quality with your own listing photos.',
+    q: 'When do I pay?',
+    a: 'Single and 5-Pack: I send a Stripe invoice on delivery, payable on net-7 terms. Monthly retainers are billed at the start of each cycle.',
   },
   {
-    q: 'Who owns uploaded photos and final videos?',
-    a: 'You keep full ownership of uploaded media and exported videos. FastListing only processes assets to generate requested output.',
+    q: 'What does turnaround mean exactly?',
+    a: 'I confirm receipt within a few hours of your intake submission. From the moment I have your photos and brief, single listings deliver within 24 business hours. Retainer same-day rush is best-effort within 8 hours.',
   },
   {
-    q: 'What is your refund policy?',
-    a: 'Paid plans include a 14-day satisfaction refund guarantee. Reach out to support and we will process eligible requests promptly.',
+    q: 'What if I need revisions?',
+    a: 'One free revision round per video, covering music swap, photo reorder, branding tweaks, or trim changes. Additional rounds are $25 each.',
   },
   {
-    q: 'How long are the generated videos?',
-    a: 'Most videos run around 35-75 seconds depending on photo count and pacing. The same project renders both 16:9 and 9:16 versions.',
+    q: 'Do you keep my photos?',
+    a: 'No. Source media is purged 30 days after delivery. You own the photos and the final videos outright.',
   },
   {
-    q: 'How fast is rendering?',
-    a: 'Typical render time is 2-4 minutes. Manual editing workflows usually take 2-8 hours for equivalent multi-format delivery.',
+    q: 'Can I cancel my retainer?',
+    a: 'Yes — month-to-month, cancel anytime before the next billing date. Unused listings within a cycle don\'t roll over.',
+  },
+  {
+    q: 'How do you handle rush jobs?',
+    a: 'Rush is available for retainer clients (best-effort 8-hour delivery) and as a +$75 add-on for single and 5-Pack clients (12-hour delivery). Mention it in your intake notes.',
   },
 ]
 
 export default function PricingPage() {
-  const { data: session } = useSession()
-  const [busyPlan, setBusyPlan] = useState('')
-
-  async function handleCheckout(priceId: string, plan: string) {
-    if (!session?.user?.id) {
-      window.location.href = '/login'
-      return
-    }
-
-    setBusyPlan(plan)
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId }),
-    })
-    const data = await res.json()
-    if (data?.url) {
-      window.location.href = data.url
-      return
-    }
-
-    setBusyPlan('')
-  }
-
   return (
     <main className={styles.shell}>
       <section className="container">
         <div className={styles.header}>
           <p className="eyebrow">Pricing</p>
-          <h1>Scale listing video output with predictable monthly plans</h1>
-          <p className="text-subtle">Start with one free render, then choose the plan that matches your monthly listing volume.</p>
+          <h1>Pay per listing, or save with a pack.</h1>
+          <p className="text-subtle">
+            No subscription required for single and pack pricing. Pay on delivery — Stripe invoice,
+            net-7 terms. Monthly retainers for agents shipping 10+ listings a month.
+          </p>
         </div>
 
         <div className={styles.planGrid}>
-          <article className={`${styles.plan} surface-card`}>
-            <p className="eyebrow">Starter</p>
-            <p className={styles.price}>$29<span style={{ fontSize: '0.95rem' }}>/mo</span></p>
-            <p className="text-subtle">Best for solo creators and boutique teams.</p>
-            <ul className={styles.features}>
-              {starterFeatures.map((f) => <li key={f}>{f}</li>)}
-            </ul>
-            <button
-              className="btn-secondary"
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID ?? '', 'starter')}
-              disabled={busyPlan !== ''}
+          {packages.map((pkg) => (
+            <article
+              key={pkg.id}
+              className={`${styles.plan} ${pkg.featured ? styles.featured : ''} surface-card`}
             >
-              {busyPlan === 'starter' ? 'Redirecting...' : 'Choose Starter'}
-            </button>
-          </article>
-
-          <article className={`${styles.plan} ${styles.featured} surface-card`}>
-            <p className={styles.badge}>Most popular</p>
-            <p className="eyebrow" style={{ marginTop: '0.7rem' }}>Pro</p>
-            <p className={styles.price}>$69<span style={{ fontSize: '0.95rem' }}>/mo</span></p>
-            <p className="text-subtle">Built for high-volume agencies and media teams.</p>
-            <ul className={styles.features}>
-              {proFeatures.map((f) => <li key={f}>{f}</li>)}
-            </ul>
-            <button
-              className="btn-primary"
-              onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? '', 'pro')}
-              disabled={busyPlan !== ''}
-            >
-              {busyPlan === 'pro' ? 'Redirecting...' : 'Choose Pro'}
-            </button>
-          </article>
+              {pkg.badge && <p className={styles.badge}>{pkg.badge}</p>}
+              <p className="eyebrow" style={{ marginTop: pkg.badge ? '0.7rem' : 0 }}>
+                {pkg.name}
+              </p>
+              <p className={styles.price}>
+                {pkg.price}
+                <span style={{ fontSize: '0.95rem' }}> {pkg.cadence}</span>
+              </p>
+              <p className="text-subtle">{pkg.blurb}</p>
+              <ul className={styles.features}>
+                {pkg.features.map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+              <Link href={`/intake?package=${pkg.id}`} className={pkg.featured ? 'btn-primary' : 'btn-secondary'}>
+                Start with {pkg.name}
+              </Link>
+            </article>
+          ))}
         </div>
 
         <section className={styles.faq}>

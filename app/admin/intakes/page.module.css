@@ -1,0 +1,148 @@
+.shell {
+  padding: 2.5rem 0 3rem;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.headerLinks {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-subtle);
+}
+
+.list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.row {
+  padding: 0.9rem 1.1rem;
+  display: grid;
+  grid-template-columns: 1fr 160px 110px 100px;
+  gap: 0.85rem;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.row:hover {
+  border-color: var(--ring);
+}
+
+.rowMain strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.rowMain span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.cellMuted {
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.statusNew {
+  background: color-mix(in srgb, var(--primary), white 60%);
+  border-color: color-mix(in srgb, var(--primary), #000 10%);
+  color: var(--primary-foreground);
+}
+
+.statusInProgress {
+  background: color-mix(in srgb, var(--warning), white 70%);
+  border-color: color-mix(in srgb, var(--warning), #000 10%);
+  color: var(--warning);
+}
+
+.statusDelivered {
+  background: color-mix(in srgb, var(--success), white 75%);
+  border-color: color-mix(in srgb, var(--success), #000 10%);
+  color: var(--success);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.detailSection {
+  padding: 1.2rem 1.4rem;
+}
+
+.detailSection h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 0.4rem 1rem;
+  font-size: 0.92rem;
+}
+
+.kv dt {
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+
+.kv dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.mediaLink {
+  word-break: break-all;
+  color: var(--ring);
+  font-weight: 600;
+}
+
+.statusBar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.statusBar form {
+  display: inline-flex;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+  .kv {
+    grid-template-columns: 1fr;
+  }
+}
