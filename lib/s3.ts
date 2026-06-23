@@ -18,6 +18,14 @@ export async function getPresignedUploadUrl(key: string, contentType: string): P
   return getSignedUrl(s3, command, { expiresIn: 300 })
 }
 
+export async function getPresignedDownloadUrl(key: string, expiresIn = 3600): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+  })
+  return getSignedUrl(s3, command, { expiresIn })
+}
+
 export async function getS3ObjectBuffer(key: string): Promise<Buffer> {
   const command = new GetObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
