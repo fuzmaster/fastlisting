@@ -64,6 +64,31 @@ export const emailPasswordSchema = z.object({
   password: z.string().min(8).max(128),
 })
 
+export const intakeSchema = z.object({
+  contactName: z.string().min(1).max(120),
+  contactEmail: z.string().email(),
+  contactPhone: z.string().max(40).optional().or(z.literal('')),
+  brokerageName: z.string().max(160).optional().or(z.literal('')),
+  agentName: z.string().max(120).optional().or(z.literal('')),
+  propertyAddress: z.string().max(255).optional().or(z.literal('')),
+  propertyPrice: z.string().max(64).optional().or(z.literal('')),
+  beds: z.string().max(16).optional().or(z.literal('')),
+  baths: z.string().max(16).optional().or(z.literal('')),
+  sqft: z.string().max(32).optional().or(z.literal('')),
+  highlights: z.string().max(2000).optional().or(z.literal('')),
+  primaryColor: z.string().max(32).optional().or(z.literal('')),
+  secondaryColor: z.string().max(32).optional().or(z.literal('')),
+  logoNotes: z.string().max(500).optional().or(z.literal('')),
+  mediaLink: z.string().url(),
+  mediaNotes: z.string().max(1000).optional().or(z.literal('')),
+  formats: z.enum(['LANDSCAPE', 'VERTICAL', 'BOTH']).default('BOTH'),
+  musicStyle: z.string().max(120).optional().or(z.literal('')),
+  voiceover: z.boolean().default(false),
+  deadline: z.string().max(64).optional().or(z.literal('')),
+  packageTier: z.string().max(40).optional().or(z.literal('')),
+  notes: z.string().max(2000).optional().or(z.literal('')),
+})
+
 export const listingImportSchema = z
   .object({
     projectId: z.string().uuid(),

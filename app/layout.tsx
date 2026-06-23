@@ -8,8 +8,8 @@ const manrope = Manrope({ variable: "--font-geist-sans", subsets: ["latin"] });
 const fraunces = Fraunces({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FastListing — Real Estate Video Automation",
-  description: "Turn listing photos into branded 16:9 and 9:16 videos in minutes. Built for real estate media professionals.",
+  title: "FastListing — Branded listing videos in 24 hours",
+  description: "Send your listing photos. I'll deliver branded 16:9 and 9:16 videos in 24 hours. Done-for-you real estate video editing.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -35,16 +35,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/" style={{ fontWeight: 800, fontSize: 19, fontFamily: "var(--font-geist-mono)", letterSpacing: "-0.02em" }}>
               FastListing
             </Link>
-            <Link href="/pricing" className="text-subtle">Pricing</Link>
-            <Link href="/security" className="text-subtle">Security</Link>
+            <Link href="/#packages" className="text-subtle">Packages</Link>
+            <Link href="/#how-it-works" className="text-subtle">How it works</Link>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/dashboard" className="text-subtle">Dashboard</Link>
-            <Link href="/login" className="btn-secondary" style={{ fontSize: 14, padding: "8px 14px" }}>
-              Sign in
-            </Link>
-            <Link href="/login" className="btn-primary" style={{ fontSize: 14, padding: "8px 14px" }}>
-              Start Free Trial
+            <Link href="/intake" className="btn-primary" style={{ fontSize: 14, padding: "8px 14px" }}>
+              Start a project
             </Link>
           </div>
         </nav>
