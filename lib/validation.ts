@@ -79,29 +79,15 @@ export const intakeSchema = z.object({
   primaryColor: z.string().max(32).optional().or(z.literal('')),
   secondaryColor: z.string().max(32).optional().or(z.literal('')),
   logoNotes: z.string().max(500).optional().or(z.literal('')),
-  mediaLink: z.string().url().optional().or(z.literal('')),
+  mediaLink: z.string().url(),
   mediaNotes: z.string().max(1000).optional().or(z.literal('')),
-  uploadedFiles: z
-    .array(
-      z.object({
-        key: z.string().min(1).max(500),
-        filename: z.string().min(1).max(255),
-        size: z.number().int().min(0),
-        contentType: z.string().min(1).max(120),
-      })
-    )
-    .max(60)
-    .default([]),
   formats: z.enum(['LANDSCAPE', 'VERTICAL', 'BOTH']).default('BOTH'),
   musicStyle: z.string().max(120).optional().or(z.literal('')),
   voiceover: z.boolean().default(false),
   deadline: z.string().max(64).optional().or(z.literal('')),
   packageTier: z.string().max(40).optional().or(z.literal('')),
   notes: z.string().max(2000).optional().or(z.literal('')),
-}).refine(
-  (data) => Boolean(data.mediaLink) || (data.uploadedFiles && data.uploadedFiles.length > 0),
-  { message: 'Either upload files or paste a share link.', path: ['mediaLink'] }
-)
+})
 
 export const listingImportSchema = z
   .object({

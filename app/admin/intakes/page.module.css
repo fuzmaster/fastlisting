@@ -127,43 +127,6 @@
   font-weight: 600;
 }
 
-.fileList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.fileItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  text-decoration: none;
-  color: inherit;
-  font-size: 0.9rem;
-  transition: border-color 0.15s, background-color 0.15s;
-}
-
-.fileItem:hover {
-  border-color: var(--ring);
-  background: color-mix(in srgb, var(--primary), white 70%);
-}
-
-.fileName {
-  font-weight: 500;
-  word-break: break-all;
-}
-
-.fileMeta {
-  color: var(--text-subtle);
-  font-size: 0.8rem;
-  flex-shrink: 0;
-  margin-left: 0.6rem;
-}
-
 .statusBar {
   display: flex;
   gap: 0.5rem;

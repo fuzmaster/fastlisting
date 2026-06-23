@@ -1,10 +1,9 @@
 'use client'
 
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import styles from './page.module.css'
-import { UploadZone, type UploadedFile } from './UploadZone'
 
 type FormState = {
   contactName: string
@@ -118,15 +117,6 @@ function IntakeForm() {
   const [form, setForm] = useState<FormState>(INITIAL)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
-
-  const draftId = useMemo(
-    () =>
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-    []
-  )
 
   useEffect(() => {
     const pkg = searchParams.get('package')
@@ -142,16 +132,12 @@ function IntakeForm() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (uploadedFiles.length === 0 && !form.mediaLink.trim()) {
-      setError('Upload your photos/videos or paste a share link before submitting.')
-      return
-    }
     setSubmitting(true)
     try {
       const res = await fetch('/api/intake', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...form, uploadedFiles }),
+        body: JSON.stringify(form),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -344,25 +330,33 @@ function IntakeForm() {
           </section>
 
           <section className={`${styles.section} surface-card`}>
-            <h2>4. Upload your photos and videos</h2>
+            <h2>4. Send me the media</h2>
             <p className={styles.sectionHint}>
-              Drop your files right here — they go straight to my server. Include your logo and
-              headshot too. Files upload as soon as you drop them in.
+              Drop your photos, videos, logo, and headshot into a Dropbox, Google Drive, or
+              WeTransfer folder, then paste the share link below. Set the link to view-only with
+              no expiration so I can grab everything.
             </p>
-            <UploadZone draftId={draftId} onChange={setUploadedFiles} />
-
-            <p className={styles.altLinkLabel}>— or, if you&apos;d rather, share a cloud link —</p>
             <div className={styles.field}>
-              <label>Dropbox / Drive / WeTransfer link (optional)</label>
+              <label>Cloud share link<span className={styles.required}>*</span></label>
               <input
+                required
                 type="url"
                 value={form.mediaLink}
                 onChange={(e) => update('mediaLink', e.target.value)}
                 placeholder="https://www.dropbox.com/scl/fo/..."
               />
-              <span className={styles.hint}>Use this if you have over 60 files or are on a slow connection.</span>
+              <span className={styles.hint}>
+                Dropbox, Google Drive, WeTransfer, OneDrive — all fine.{' '}
+                <a
+                  href="https://www.dropbox.com/scl/fo/"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--ring)', fontWeight: 600 }}
+                >
+                  Don&apos;t have Dropbox? Create a free folder →
+                </a>
+              </span>
             </div>
-
             <div className={styles.field} style={{ marginTop: '0.85rem' }}>
               <label>Anything I need to know about the media?</label>
               <textarea

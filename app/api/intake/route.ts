@@ -33,9 +33,8 @@ export async function POST(request: Request) {
         primaryColor: data.primaryColor || null,
         secondaryColor: data.secondaryColor || null,
         logoNotes: data.logoNotes || null,
-        mediaLink: data.mediaLink || '',
+        mediaLink: data.mediaLink,
         mediaNotes: data.mediaNotes || null,
-        uploadedFiles: data.uploadedFiles,
         formats: data.formats,
         musicStyle: data.musicStyle || null,
         voiceover: data.voiceover,
@@ -52,10 +51,9 @@ export async function POST(request: Request) {
       contactPhone: intake.contactPhone,
       brokerageName: intake.brokerageName,
       propertyAddress: intake.propertyAddress,
-      mediaLink: intake.mediaLink || '(direct upload)',
+      mediaLink: intake.mediaLink,
       packageTier: intake.packageTier,
       deadline: intake.deadline,
-      uploadedFileCount: data.uploadedFiles.length,
     })
 
     return NextResponse.json({ ok: true, id: intake.id })

@@ -8,7 +8,6 @@ type IntakePayload = {
   mediaLink: string
   packageTier?: string | null
   deadline?: string | null
-  uploadedFileCount?: number
 }
 
 export async function notifyNewIntake(intake: IntakePayload) {
@@ -22,7 +21,6 @@ export async function notifyNewIntake(intake: IntakePayload) {
     intake.propertyAddress ? `Property: ${intake.propertyAddress}` : null,
     intake.packageTier ? `Package: ${intake.packageTier}` : null,
     intake.deadline ? `Deadline: ${intake.deadline}` : null,
-    intake.uploadedFileCount ? `Direct uploads: ${intake.uploadedFileCount} file(s)` : null,
     `Media: ${intake.mediaLink}`,
     `Intake ID: ${intake.id}`,
   ]

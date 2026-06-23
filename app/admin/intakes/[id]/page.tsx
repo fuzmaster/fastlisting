@@ -3,29 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { auth } from '@/auth'
 import { getIntakeById, updateIntakeStatus } from '@/lib/db/intakes'
-import { getPresignedDownloadUrl } from '@/lib/s3'
 import styles from '../page.module.css'
-
-type UploadedFile = {
-  key: string
-  filename: string
-  size: number
-  contentType: string
-}
-
-function parseUploadedFiles(value: unknown): UploadedFile[] {
-  if (!Array.isArray(value)) return []
-  return value.filter(
-    (v): v is UploadedFile =>
-      typeof v === 'object' && v !== null && 'key' in v && 'filename' in v
-  )
-}
-
-function formatBytes(n: number) {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
-  return `${(n / 1024 / 1024).toFixed(1)} MB`
-}
 
 const STATUSES = ['NEW', 'IN_PROGRESS', 'DELIVERED'] as const
 type Status = (typeof STATUSES)[number]
@@ -56,11 +34,6 @@ export default async function IntakeDetailPage({
   const { id } = await params
   const intake = await getIntakeById(id)
   if (!intake) notFound()
-
-  const files = parseUploadedFiles(intake.uploadedFiles)
-  const filesWithUrls = await Promise.all(
-    files.map(async (f) => ({ ...f, url: await getPresignedDownloadUrl(f.key, 3600) }))
-  )
 
   return (
     <main className={styles.shell}>
@@ -100,44 +73,16 @@ export default async function IntakeDetailPage({
 
           <article className={`${styles.detailSection} surface-card`}>
             <h2>Media</h2>
-            {filesWithUrls.length > 0 && (
-              <div className={styles.fileList}>
-                <p className="text-subtle" style={{ margin: '0 0 0.5rem', fontSize: '0.85rem' }}>
-                  {filesWithUrls.length} direct upload{filesWithUrls.length === 1 ? '' : 's'} ·
-                  download links valid for 1 hour
-                </p>
-                {filesWithUrls.map((f) => (
-                  <a
-                    key={f.key}
-                    href={f.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.fileItem}
-                  >
-                    <span className={styles.fileName}>{f.filename}</span>
-                    <span className={styles.fileMeta}>{formatBytes(f.size)}</span>
-                  </a>
-                ))}
-              </div>
-            )}
-            {intake.mediaLink && (
-              <p style={{ marginTop: filesWithUrls.length ? '1rem' : 0 }}>
-                <span className="text-subtle" style={{ fontSize: '0.85rem', display: 'block', marginBottom: 4 }}>
-                  Cloud share link:
-                </span>
-                <a
-                  className={styles.mediaLink}
-                  href={intake.mediaLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {intake.mediaLink}
-                </a>
-              </p>
-            )}
-            {filesWithUrls.length === 0 && !intake.mediaLink && (
-              <p className="text-subtle">No media attached.</p>
-            )}
+            <p>
+              <a
+                className={styles.mediaLink}
+                href={intake.mediaLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {intake.mediaLink}
+              </a>
+            </p>
             {intake.mediaNotes && (
               <p className="text-subtle" style={{ margin: '0.5rem 0 0' }}>
                 {intake.mediaNotes}
