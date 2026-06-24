@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styles from './page.module.css'
 import { Logo } from './components/Logo'
 import { Slideshow } from './components/Slideshow'
+import { WorkflowAnimation } from './components/WorkflowAnimation'
 
 const SAMPLE_LISTING = Array.from({ length: 10 }, (_, i) => `/samples/listing-middle-rd/${String(i + 1).padStart(2, '0')}.jpg`)
 
@@ -216,6 +217,18 @@ export default function HomePage() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className="container">
+          <p className="eyebrow">Behind the scenes</p>
+          <h2>What happens after you hit submit.</h2>
+          <p className="text-subtle" style={{ maxWidth: 620, marginBottom: '1.5rem' }}>
+            From the moment your brief arrives to the moment the videos hit your inbox — all
+            automated, no manual editing on my end. That&apos;s how 24-hour turnaround is possible.
+          </p>
+          <WorkflowAnimation />
         </div>
       </section>
 

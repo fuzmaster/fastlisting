@@ -1,0 +1,162 @@
+.wrap {
+  padding: 1rem 0 0;
+}
+
+.track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+  position: relative;
+}
+
+.step {
+  padding: 1.3rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  animation: stepCycle 12s infinite;
+  transition: transform 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease, opacity 0.5s ease;
+  opacity: 0.7;
+}
+
+.step h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.step p {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.numBadge {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.iconWrap {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--primary), white 80%);
+  border-radius: 12px;
+  margin-bottom: 0.3rem;
+  transition: background 0.5s ease;
+}
+
+.step :global(.icon-stroke) {
+  stroke: color-mix(in srgb, var(--primary), #000 5%);
+  transition: stroke 0.5s ease;
+}
+
+.step :global(.icon-fill) {
+  fill: color-mix(in srgb, var(--primary), #000 5%);
+  transition: fill 0.5s ease;
+}
+
+.step :global(.icon-accent) {
+  fill: var(--accent);
+  transition: fill 0.5s ease;
+}
+
+@keyframes stepCycle {
+  0%, 18% {
+    transform: translateY(-4px) scale(1.03);
+    border-color: var(--primary);
+    box-shadow: 0 18px 38px rgba(201, 169, 127, 0.28);
+    opacity: 1;
+  }
+  25%, 100% {
+    transform: translateY(0) scale(1);
+    border-color: var(--border);
+    box-shadow: none;
+    opacity: 0.7;
+  }
+}
+
+.step:nth-child(1) {
+  animation-delay: 0s;
+}
+.step:nth-child(2) {
+  animation-delay: 3s;
+}
+.step:nth-child(3) {
+  animation-delay: 6s;
+}
+.step:nth-child(4) {
+  animation-delay: 9s;
+}
+
+.connector {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  background: var(--border);
+  z-index: -1;
+  transform: translateY(-50%);
+}
+
+.gearSpin {
+  transform-origin: 32px 32px;
+  animation: gearSpin 6s linear infinite;
+}
+
+@keyframes gearSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pulseDot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (max-width: 880px) {
+  .track {
+    grid-template-columns: 1fr;
+  }
+  .step {
+    animation: stepCycleMobile 12s infinite;
+  }
+  @keyframes stepCycleMobile {
+    0%, 18% {
+      transform: scale(1.02);
+      border-color: var(--primary);
+      box-shadow: 0 14px 30px rgba(201, 169, 127, 0.22);
+      opacity: 1;
+    }
+    25%, 100% {
+      transform: scale(1);
+      border-color: var(--border);
+      box-shadow: none;
+      opacity: 0.75;
+    }
+  }
+}
