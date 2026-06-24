@@ -3,6 +3,7 @@
 import Link from 'next/link'
 
 import styles from './page.module.css'
+import { Logo } from './components/Logo'
 
 const steps = [
   {
@@ -306,7 +307,12 @@ export default function HomePage() {
             flexWrap: 'wrap',
           }}
         >
-          <p style={{ margin: 0 }}>© {new Date().getFullYear()} FastListing</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Logo height={22} />
+            <span style={{ color: 'var(--text-subtle)', fontSize: '0.9rem' }}>
+              © {new Date().getFullYear()}
+            </span>
+          </div>
           <div className={styles.footerLinks}>
             <Link href="/intake">Start a project</Link>
             <Link href="/privacy">Privacy</Link>

@@ -3,6 +3,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import Link from "next/link";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import { Logo } from "./components/Logo";
 
 const manrope = Manrope({ variable: "--font-geist-sans", subsets: ["latin"] });
 const fraunces = Fraunces({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -32,8 +33,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-            <Link href="/" style={{ fontWeight: 800, fontSize: 19, fontFamily: "var(--font-geist-mono)", letterSpacing: "-0.02em" }}>
-              FastListing
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center" }}>
+              <Logo height={26} />
             </Link>
             <Link href="/#packages" className="text-subtle">Packages</Link>
             <Link href="/#how-it-works" className="text-subtle">How it works</Link>
