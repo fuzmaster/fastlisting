@@ -45,6 +45,51 @@
   padding: 0.65rem;
 }
 
+.heroCollage {
+  padding: 0.85rem;
+}
+
+.collageGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.collageTile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background-color: var(--muted);
+}
+
+.collageTile:nth-child(1) {
+  border-top-left-radius: 16px;
+}
+
+.collageTile:nth-child(2) {
+  border-top-right-radius: 16px;
+}
+
+.collageTile:nth-child(3) {
+  border-bottom-left-radius: 16px;
+}
+
+.collageTile:nth-child(4) {
+  border-bottom-right-radius: 16px;
+}
+
+.collageCaption {
+  margin: 0.7rem 0 0.1rem;
+  font-size: 0.82rem;
+  color: var(--text-subtle);
+  text-align: center;
+}
+
 .videoLabel {
   margin: 0.25rem 0 0.4rem;
   font-size: 0.84rem;

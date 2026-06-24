@@ -122,9 +122,6 @@ const faqs = [
   },
 ]
 
-const demoVideoLandscape = 'https://samplelib.com/lib/preview/mp4/sample-20s.mp4'
-const demoVideoVertical = 'https://samplelib.com/lib/preview/mp4/sample-15s.mp4'
-
 export default function HomePage() {
   return (
     <main className={styles.main}>
@@ -155,32 +152,17 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className={styles.videoStack}>
-              <div className={`${styles.videoCard} surface-card`}>
-                <p className={styles.videoLabel}>Sample delivery: 16:9</p>
-                <video
-                  className={styles.video}
-                  src={demoVideoLandscape}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls
-                />
+            <div className={`${styles.heroCollage} surface-card`}>
+              <p className={styles.videoLabel}>Recent work</p>
+              <div className={styles.collageGrid}>
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-modern/01.jpg)' }} aria-label="Modern interior listing" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-aerial/01.jpg)' }} aria-label="Aerial daytime listing" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-twilight/01.jpg)' }} aria-label="Twilight exterior listing" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-classic/01.jpg)' }} aria-label="Classic residential listing" />
               </div>
-              <div className={`${styles.videoCard} surface-card`}>
-                <p className={styles.videoLabel}>Sample delivery: 9:16</p>
-                <video
-                  className={styles.video}
-                  src={demoVideoVertical}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls
-                  style={{ aspectRatio: '9 / 16', maxHeight: 360, margin: '0 auto' }}
-                />
-              </div>
+              <p className={styles.collageCaption}>
+                Photos from real shoots — sample inputs the same way you&apos;d send yours.
+              </p>
             </div>
           </div>
 
