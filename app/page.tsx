@@ -4,6 +4,9 @@ import Link from 'next/link'
 
 import styles from './page.module.css'
 import { Logo } from './components/Logo'
+import { Slideshow } from './components/Slideshow'
+
+const SAMPLE_LISTING = Array.from({ length: 10 }, (_, i) => `/samples/listing-middle-rd/${String(i + 1).padStart(2, '0')}.jpg`)
 
 const steps = [
   {
@@ -155,10 +158,10 @@ export default function HomePage() {
             <div className={`${styles.heroCollage} surface-card`}>
               <p className={styles.videoLabel}>Recent work</p>
               <div className={styles.collageGrid}>
-                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-modern/01.jpg)' }} aria-label="Modern interior listing" />
-                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-aerial/01.jpg)' }} aria-label="Aerial daytime listing" />
-                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-twilight/01.jpg)' }} aria-label="Twilight exterior listing" />
-                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-classic/01.jpg)' }} aria-label="Classic residential listing" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/britten-aerial/02-westborough-house.jpg)' }} aria-label="Aerial property shot" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-middle-rd/01.jpg)' }} aria-label="Front exterior" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-feb-2024/01.jpg)' }} aria-label="Modern interior" />
+                <div className={styles.collageTile} style={{ backgroundImage: 'url(/samples/listing-twilight/02.jpg)' }} aria-label="Twilight exterior" />
               </div>
               <p className={styles.collageCaption}>
                 Photos from real shoots — sample inputs the same way you&apos;d send yours.
@@ -179,6 +182,23 @@ export default function HomePage() {
               <h3>$149</h3>
               <p>Starts at — per listing</p>
             </article>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className="container">
+          <p className="eyebrow">Sample delivery</p>
+          <h2>This is what you get back.</h2>
+          <p className="text-subtle" style={{ maxWidth: 620, marginBottom: '1.5rem' }}>
+            Ten listing photos, automatically sequenced for room-to-room flow, paced with subtle
+            Ken Burns motion. Hover to pause.
+          </p>
+          <div style={{ maxWidth: 880, margin: '0 auto' }}>
+            <Slideshow
+              images={SAMPLE_LISTING}
+              caption="187 Middle Rd, Southborough · 10 photos · 16:9 cut shown"
+            />
           </div>
         </div>
       </section>
